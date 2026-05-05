@@ -1,0 +1,11 @@
+{
+  "type": "search",
+  "query": {
+    "original": "\"Empresa Falsa\" site:empresafalsa-xyz.com",
+    "show_strict_warning": false
+  },
+  "web": {
+    "type": "search",
+    "results": []
+  }
+}

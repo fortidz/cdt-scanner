@@ -1,0 +1,27 @@
+{
+  "type": "search",
+  "query": {
+    "original": "Acme Corp Ecuador",
+    "show_strict_warning": false
+  },
+  "web": {
+    "type": "search",
+    "results": [
+      {
+        "title": "Acme Corp Industries",
+        "url": "https://www.acme-industries.com/",
+        "description": "Industrial supplier worldwide."
+      },
+      {
+        "title": "Acme Corp Argentina",
+        "url": "https://www.acmecorp.com.ar/",
+        "description": "Sucursal en Argentina."
+      },
+      {
+        "title": "Acme Corp news",
+        "url": "https://noticias-empresariales.com/acme",
+        "description": "Resumen de noticias corporativas."
+      }
+    ]
+  }
+}

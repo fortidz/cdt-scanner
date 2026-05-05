@@ -1,0 +1,27 @@
+{
+  "type": "search",
+  "query": {
+    "original": "Tipti Ecuador",
+    "show_strict_warning": false
+  },
+  "web": {
+    "type": "search",
+    "results": [
+      {
+        "title": "Tipti — Supermercado online oficial",
+        "url": "https://www.tipti.ec/",
+        "description": "Sitio oficial de Tipti en Ecuador."
+      },
+      {
+        "title": "Reseñas de servicios online",
+        "url": "https://reseñas-online.example/quito",
+        "description": "Comentarios de usuarios."
+      },
+      {
+        "title": "Listado de empresas en Quito",
+        "url": "https://paginasamarillas.com/quito",
+        "description": "Directorio comercial."
+      }
+    ]
+  }
+}
