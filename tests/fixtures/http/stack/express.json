@@ -1,0 +1,10 @@
+{
+  "url": "https://api.acme.example/",
+  "status": 200,
+  "headers": {
+    "x-powered-by": "Express",
+    "content-type": "application/json"
+  },
+  "cookies": [],
+  "body": "{\"ok\":true}"
+}

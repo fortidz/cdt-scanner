@@ -1,0 +1,10 @@
+{
+  "url": "https://blog.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "nginx/1.27.1",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<!DOCTYPE html><html><head><title>Blog</title><meta name=\"generator\" content=\"WordPress 6.5.2\"><link href=\"/wp-content/themes/acme/style.css\" rel=\"stylesheet\"></head><body><script src=\"/wp-includes/js/jquery.js\"></script></body></html>"
+}

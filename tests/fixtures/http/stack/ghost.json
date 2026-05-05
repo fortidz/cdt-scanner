@@ -1,0 +1,10 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "nginx/1.27.1",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><head><title>Ghost site</title><meta name=\"generator\" content=\"Ghost 5.81.0\"></head><body><a href=\"/ghost/\">Admin</a></body></html>"
+}

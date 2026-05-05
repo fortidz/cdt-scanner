@@ -1,0 +1,9 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body><script>window.__NUXT__ = {state: {}};</script></body></html>"
+}

@@ -1,0 +1,12 @@
+{
+  "url": "https://acme-shop.myshopify.com/",
+  "status": 200,
+  "headers": {
+    "x-shopid": "12345678",
+    "x-shopify-stage": "production",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>shopify</body></html>",
+  "cnames": ["shops.myshopify.com"]
+}

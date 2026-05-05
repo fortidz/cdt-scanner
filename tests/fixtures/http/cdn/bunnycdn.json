@@ -1,0 +1,10 @@
+{
+  "url": "https://cdn.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "BunnyCDN-FR1-1234",
+    "content-type": "image/jpeg"
+  },
+  "cookies": [],
+  "body": ""
+}

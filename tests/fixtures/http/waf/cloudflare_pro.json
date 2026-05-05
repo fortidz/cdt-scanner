@@ -1,0 +1,12 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "cloudflare",
+    "cf-ray": "8c3f0f0f0f0f0f0f-MIA",
+    "cf-cache-status": "DYNAMIC",
+    "content-type": "text/html; charset=utf-8"
+  },
+  "cookies": ["__cf_bm=abc123; Path=/"],
+  "body": "<html><head><title>Acme</title></head><body>Hello</body></html>"
+}

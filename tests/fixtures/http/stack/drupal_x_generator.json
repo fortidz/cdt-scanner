@@ -1,0 +1,11 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "x-generator": "Drupal 10 (https://www.drupal.org)",
+    "server": "Apache/2.4.57",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><head><title>Drupal site</title></head><body><script src=\"/sites/default/files/js/main.js\"></script></body></html>"
+}

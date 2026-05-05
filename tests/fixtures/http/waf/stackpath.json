@@ -1,0 +1,10 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "x-sp-request-id": "abc-123-xyz",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>stackpath</body></html>"
+}

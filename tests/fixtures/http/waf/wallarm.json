@@ -1,0 +1,10 @@
+{
+  "url": "https://api.acme.example/",
+  "status": 200,
+  "headers": {
+    "nemesida": "1",
+    "content-type": "application/json"
+  },
+  "cookies": [],
+  "body": "{\"ok\":true}"
+}

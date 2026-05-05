@@ -1,0 +1,12 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "x-served-by": "cache-mia12345-MIA",
+    "x-cache": "HIT",
+    "fastly-debug-path": "(D 0.000)",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>fastly</body></html>"
+}

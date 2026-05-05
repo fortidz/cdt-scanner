@@ -1,0 +1,11 @@
+{
+  "url": "https://cdn.acme.example/",
+  "status": 200,
+  "headers": {
+    "via": "1.1 google",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>g-cdn</body></html>",
+  "asn": 15169
+}

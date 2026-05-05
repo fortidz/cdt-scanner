@@ -1,0 +1,11 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "x-azure-ref": "0bDx5ZAAAAAB7EI2nTU7CRY7qSZGmKnw7TUlBMjFFREdFMDIxMQAyZGM2YWMxYS00YzE1LTRkNGQtYWMzNy0xZjM4OTFjMDg2YzM=",
+    "x-msedge-ref": "Ref A: 7DE8B4E68E5B4A9C9EFE5F1A56FC8F00 Ref B: SJC30EDGE0509",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>azure fd</body></html>"
+}

@@ -1,0 +1,11 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "x-served-by": "squarespace-edge",
+    "server": "Squarespace",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>squarespace</body></html>"
+}

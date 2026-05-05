@@ -1,0 +1,10 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "x-powered-by": "Phusion Passenger 6.0.20",
+    "content-type": "text/html"
+  },
+  "cookies": ["_acme_session=abc; Path=/"],
+  "body": "<html><body>rails</body></html>"
+}

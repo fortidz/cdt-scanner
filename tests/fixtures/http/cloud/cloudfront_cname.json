@@ -1,0 +1,8 @@
+{
+  "url": "https://shop.acme.example/",
+  "status": 200,
+  "headers": {"content-type": "text/html"},
+  "cookies": [],
+  "body": "<html></html>",
+  "cnames": ["d111111abcdef8.cloudfront.net"]
+}

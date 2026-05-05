@@ -1,0 +1,11 @@
+{
+  "url": "https://plain.example/",
+  "status": 200,
+  "headers": {
+    "server": "nginx/1.24.0",
+    "content-type": "text/html",
+    "content-length": "200"
+  },
+  "cookies": [],
+  "body": "<html><head><title>Plain</title></head><body>Hello</body></html>"
+}

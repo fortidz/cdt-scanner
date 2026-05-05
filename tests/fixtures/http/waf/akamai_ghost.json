@@ -1,0 +1,11 @@
+{
+  "url": "https://www.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "AkamaiGHost",
+    "x-akamai-transformed": "9 - 0 pmb=mTOE,1",
+    "content-type": "text/html"
+  },
+  "cookies": ["ak_bmsc=ABCD; Path=/"],
+  "body": "<html><body>akamai</body></html>"
+}

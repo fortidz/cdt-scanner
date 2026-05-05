@@ -1,0 +1,9 @@
+{
+  "url": "https://corp.acme.example.pe/",
+  "status": 200,
+  "headers": {"server": "nginx/1.20.0", "content-type": "text/html"},
+  "cookies": [],
+  "body": "<html></html>",
+  "asn": 12252,
+  "asn_org": "Telefonica del Peru S.A.A."
+}

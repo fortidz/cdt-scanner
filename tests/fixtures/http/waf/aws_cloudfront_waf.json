@@ -1,0 +1,13 @@
+{
+  "url": "https://shop.acme.example/",
+  "status": 200,
+  "headers": {
+    "via": "1.1 d111111abcdef8.cloudfront.net (CloudFront)",
+    "x-amz-cf-id": "Tk-fXLjPMpFpwRaqPj6CgUEBpVxYkXfH4QhDrYTPsQ-gSL_PqMXyIw==",
+    "x-amz-cf-pop": "MIA50-C1",
+    "x-cache": "Hit from cloudfront",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>cdn</body></html>"
+}

@@ -1,0 +1,12 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "Microsoft-IIS/10.0",
+    "x-powered-by": "ASP.NET",
+    "x-aspnet-version": "4.0.30319",
+    "content-type": "text/html"
+  },
+  "cookies": ["ASP.NET_SessionId=abc; Path=/"],
+  "body": "<html><body>aspnet</body></html>"
+}
