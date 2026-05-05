@@ -1,0 +1,303 @@
+name: Run CDT Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "Run target — `dev` (persistent self-hosted Linode) or `prod` (ephemeral)."
+        type: choice
+        options: [dev, prod]
+        default: prod
+      tier:
+        description: "Scan depth."
+        type: choice
+        options: [passive, browser, dast]
+        default: browser
+      csv_content:
+        description: "Paste accounts_in.csv here. Empty = use inputs/recurring.csv from the repo."
+        type: string
+        required: false
+      country_filter:
+        description: "Comma-separated country filter (e.g. 'Ecuador,Perú'). Empty = all."
+        type: string
+        required: false
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+
+permissions:
+  contents: write     # commit-back outputs branch (v0.5 §3.7)
+  packages: read      # pull ghcr.io/fortidz/cdt image
+
+concurrency:
+  group: cdt-scan-${{ github.event.inputs.phase }}
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    # Dev runs on the persistent Linode self-hosted runner; Prod runs on
+    # ubuntu-latest and provisions an ephemeral Linode via Terraform.
+    runs-on: ${{ inputs.phase == 'dev' && fromJSON('["self-hosted","linode","cdt-dev"]') || 'ubuntu-latest' }}
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout cdt-scanner
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve input CSV
+        run: |
+          set -euo pipefail
+          mkdir -p ./in
+          if [ -n "${{ inputs.csv_content }}" ]; then
+            printf '%s' "${{ inputs.csv_content }}" > ./in/accounts_in.csv
+          else
+            cp inputs/recurring.csv ./in/accounts_in.csv
+          fi
+          # Header sanity check — fail-fast if someone pastes broken CSV.
+          head -1 ./in/accounts_in.csv | grep -q "Title,Country,Website" || {
+            echo "::error::CSV missing expected headers Title,Country,Website"
+            exit 3
+          }
+
+      # =========================================================================
+      # PHASE DEV — self-hosted Linode persistent VM (cdt-dev-persistent).
+      # =========================================================================
+
+      - name: '[DEV] Pull image'
+        if: ${{ inputs.phase == 'dev' }}
+        run: docker pull ghcr.io/fortidz/cdt:dev
+
+      - name: '[DEV] Run scan'
+        if: ${{ inputs.phase == 'dev' }}
+        env:
+          BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+          SHODAN_API_KEY: ${{ secrets.SHODAN_API_KEY }}
+          BUILTWITH_API_KEY: ${{ secrets.BUILTWITH_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ./out ./cache
+          docker run --rm \
+            -v "$PWD/in:/app/in:ro" \
+            -v "$PWD/out:/app/out" \
+            -v "$PWD/cache:/app/cache" \
+            -e BRAVE_SEARCH_API_KEY \
+            -e SHODAN_API_KEY \
+            -e BUILTWITH_API_KEY \
+            -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
+            --user 1000:1000 \
+            --read-only --tmpfs /tmp \
+            ghcr.io/fortidz/cdt:dev \
+            scan --in /app/in/accounts_in.csv \
+                 --tier "${{ inputs.tier }}" \
+                 --country "${{ inputs.country_filter }}" \
+                 --out /app/out/
+
+      # =========================================================================
+      # PHASE PROD — Linode ephemeral provisioned via Terraform per-run.
+      # Lifetime ~60–90 min. Always destroyed in the cleanup step.
+      # =========================================================================
+
+      - name: '[PROD] Checkout cdt-infra'
+        if: ${{ inputs.phase == 'prod' }}
+        uses: actions/checkout@v4
+        with:
+          repository: fortidz/cdt-infra
+          token: ${{ secrets.INFRA_TOKEN }}
+          path: infra
+          ref: main
+
+      - name: '[PROD] Setup Terraform'
+        if: ${{ inputs.phase == 'prod' }}
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+          cli_config_credentials_token: ${{ secrets.HCP_TF_TOKEN }}
+
+      - name: '[PROD] Terraform init + apply'
+        if: ${{ inputs.phase == 'prod' }}
+        id: tf_apply
+        working-directory: ./infra/env/ephemeral
+        env:
+          TF_VAR_run_id: ${{ github.run_id }}
+          TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
+          TF_VAR_ssh_pubkey: ${{ secrets.EPHEMERAL_SSH_PUBKEY }}
+          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt:latest'
+        run: |
+          set -euo pipefail
+          terraform init
+          terraform apply -auto-approve
+          {
+            echo "public_ip=$(terraform output -raw public_ip)"
+            echo "instance_label=$(terraform output -raw instance_label)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: '[PROD] Wait for SSH ready'
+        if: ${{ inputs.phase == 'prod' }}
+        env:
+          PUBLIC_IP: ${{ steps.tf_apply.outputs.public_ip }}
+        run: |
+          set -euo pipefail
+          echo "Waiting for SSH to become available on $PUBLIC_IP..."
+          for i in {1..60}; do
+            if nc -z -w 3 "$PUBLIC_IP" 22 2>/dev/null; then
+              echo "SSH ready after $((i * 5))s"
+              # Extra wait for cloud-init / StackScript to finish docker-pull.
+              sleep 30
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::SSH never became ready after 5 min"
+          exit 1
+
+      - name: '[PROD] Setup SSH agent'
+        if: ${{ inputs.phase == 'prod' }}
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EPHEMERAL_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          eval "$(ssh-agent -s)"
+          {
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID"
+          } >> "$GITHUB_ENV"
+          printf '%s\n' "$SSH_PRIVATE_KEY" | ssh-add -
+
+      - name: '[PROD] Push inputs and run scan'
+        if: ${{ inputs.phase == 'prod' }}
+        env:
+          PUBLIC_IP: ${{ steps.tf_apply.outputs.public_ip }}
+          BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+          SHODAN_API_KEY: ${{ secrets.SHODAN_API_KEY }}
+          BUILTWITH_API_KEY: ${{ secrets.BUILTWITH_API_KEY }}
+        run: |
+          set -euo pipefail
+          # Capture host key once (avoids prompts; fresh VM = fresh fingerprint).
+          ssh-keyscan -H "$PUBLIC_IP" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Push inputs to VM.
+          scp -r ./in cdt@"$PUBLIC_IP":/app/
+
+          # Run scan via docker on the VM.
+          # BRAVE_SEARCH_API_KEY is passed as `-e VAR` (no `=value`) so docker
+          # reads from the SSH session env, not from `ps`/cmdline on the VM.
+          ssh cdt@"$PUBLIC_IP" \
+            "BRAVE_SEARCH_API_KEY='$BRAVE_SEARCH_API_KEY' \
+             SHODAN_API_KEY='${SHODAN_API_KEY:-}' \
+             BUILTWITH_API_KEY='${BUILTWITH_API_KEY:-}' \
+             docker run --rm \
+               -v /app/in:/app/in:ro \
+               -v /app/out:/app/out \
+               -v /app/cache:/app/cache \
+               -e BRAVE_SEARCH_API_KEY \
+               -e SHODAN_API_KEY \
+               -e BUILTWITH_API_KEY \
+               -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
+               --user 1000:1000 \
+               --read-only --tmpfs /tmp \
+               ghcr.io/fortidz/cdt:latest \
+               scan --in /app/in/accounts_in.csv \
+                    --tier '${{ inputs.tier }}' \
+                    --country '${{ inputs.country_filter }}' \
+                    --out /app/out/"
+
+          # Pull outputs back.
+          mkdir -p ./out
+          scp -r cdt@"$PUBLIC_IP":/app/out/* ./out/
+
+      - name: '[PROD] Save cache'
+        if: ${{ inputs.phase == 'prod' && success() }}
+        uses: actions/cache@v4
+        with:
+          path: ./cache
+          key: cdt-cache-${{ hashFiles('config/*.yaml') }}
+          restore-keys: cdt-cache-
+
+      # =========================================================================
+      # CLEANUP — destroy the ephemeral VM regardless of scan success.
+      # =========================================================================
+
+      - name: '[PROD] Terraform destroy'
+        if: ${{ inputs.phase == 'prod' && always() }}
+        working-directory: ./infra/env/ephemeral
+        env:
+          TF_VAR_run_id: ${{ github.run_id }}
+          TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
+          TF_VAR_ssh_pubkey: ${{ secrets.EPHEMERAL_SSH_PUBKEY }}
+          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt:latest'
+        run: terraform destroy -auto-approve
+
+      # =========================================================================
+      # OUTPUTS — upload artifact + commit-back to outputs branch.
+      # =========================================================================
+
+      - name: 'Upload outputs as artifact'
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdt-scan-${{ github.run_id }}
+          path: ./out/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: 'Commit outputs to outputs branch'
+        if: ${{ success() }}
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d)
+          DEST="outputs/${DATE}_${RUN_ID}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Materialise outputs branch (orphan-init if missing).
+          git fetch origin outputs:outputs 2>/dev/null || true
+          if git rev-parse --verify outputs >/dev/null 2>&1; then
+            git checkout outputs
+          else
+            git checkout --orphan outputs
+            git rm -rf . 2>/dev/null || true
+            cat > README.md <<'EOF'
+          # CDT scan outputs
+
+          One folder per run. Operators download
+          `accounts_enriched.csv` from the most recent folder and upload
+          it manually to SharePoint via Grid view paste (v0.5 §3).
+          EOF
+            cat > .gitattributes <<'EOF'
+          outputs/**/*.csv  linguist-generated=true
+          EOF
+            git add README.md .gitattributes
+            git commit -m "init outputs branch"
+          fi
+
+          mkdir -p "${DEST}"
+          # Copy whichever outputs the scan produced. ``cp -n`` to skip
+          # files we don't have (partial-failure recovery).
+          for f in accounts_enriched.csv sites.csv findings.csv \
+                   validation_issues.csv nikto_runs.jsonl; do
+            if [ -f "./out/$f" ]; then
+              cp "./out/$f" "${DEST}/"
+            fi
+          done
+
+          cat > "${DEST}/run-meta.json" <<EOF
+          {
+            "run_id": "${RUN_ID}",
+            "phase": "${{ inputs.phase }}",
+            "tier": "${{ inputs.tier }}",
+            "country_filter": "${{ inputs.country_filter }}",
+            "completed_at": "$(date -u +%FT%TZ)"
+          }
+          EOF
+
+          git add "${DEST}"
+          git commit -m "scan results: ${DATE} run ${RUN_ID}" || {
+            echo "::warning::No outputs to commit"
+            exit 0
+          }
+          git push origin outputs

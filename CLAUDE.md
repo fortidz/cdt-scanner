@@ -275,3 +275,31 @@ Cada fase:
 - ✅ `CLAUDE.md` (este).
 - ⏳ Skill `cdt-scanner-dev`.
 - ⏳ Fase 1 — scaffold Python (próxima).
+
+---
+
+## Secrets requeridos en GitHub Actions
+
+Los workflows `scan.yml` y `release.yml` consumen estos secrets. Sin los
+**Required**, el workflow falla en pre-flight; los **Opcionales** habilitan
+funcionalidad extra sin bloquear la corrida.
+
+### Required
+
+| Secret | Workflow | Propósito |
+|---|---|---|
+| `BRAVE_SEARCH_API_KEY` | `scan.yml` (Phase Dev + Prod) | Brave Search API para Validate/Discover modes (override Google CSE) |
+| `LINODE_TOKEN` | `scan.yml` (Phase Prod) | `terraform apply` provisión Linode efímero |
+| `HCP_TF_TOKEN` | `scan.yml` (Phase Prod) | autenticación HCP Terraform backend (workspace `cdt-ephemeral`) |
+| `INFRA_TOKEN` | `scan.yml` (Phase Prod) | `actions/checkout` del repo `cdt-infra` |
+| `EPHEMERAL_SSH_PUBKEY` | `scan.yml` (Phase Prod) | inyectar al Linode efímero via StackScript |
+| `EPHEMERAL_SSH_PRIVATE_KEY` | `scan.yml` (Phase Prod) | SSH/SCP al Linode efímero (transferir CSV input + recoger outputs) |
+| `GITHUB_TOKEN` (auto) | `release.yml` + `scan.yml` | publicar imagen GHCR + commit-back a la rama `outputs` |
+
+### Opcionales (habilitan funcionalidad extra sin bloquear la corrida)
+
+| Secret | Si presente |
+|---|---|
+| `SHODAN_API_KEY` | habilita Shodan Host API (paid tier desde $69/mo). Sin ella, sólo Shodan InternetDB free tier corre. |
+| `BUILTWITH_API_KEY` | habilita BuiltWith tech stack lookup. Sin ella, el wrapper devuelve `enabled=False` graciosamente. |
+| `CENSYS_API_ID` + `CENSYS_API_SECRET` | **NO usar todavía** — `censys==2.2` (la versión pinneada) usa la legacy API; el formato moderno PAT requiere Platform API + SDK 3.x. Tracked en spec deltas v0.5.1 #16. |
