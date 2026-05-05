@@ -1,0 +1,22 @@
+{
+  "type": "search",
+  "query": {
+    "original": "\"Tipti\" site:tipti.market",
+    "show_strict_warning": false
+  },
+  "web": {
+    "type": "search",
+    "results": [
+      {
+        "title": "Tipti — Tu supermercado online en Ecuador",
+        "url": "https://www.tipti.market/",
+        "description": "Compra en Supermaxi, Megamaxi, AKí y más desde Tipti."
+      },
+      {
+        "title": "Acerca de Tipti",
+        "url": "https://www.tipti.market/about",
+        "description": "Conoce nuestra historia y equipo."
+      }
+    ]
+  }
+}
