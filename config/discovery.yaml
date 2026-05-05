@@ -1,0 +1,35 @@
+# Discovery configuration (v0.4 §4.5).
+# Override on v0.4 §4: provider is Brave Search (Google CSE deprecated
+# "Search the entire web"). See CLAUDE.md.
+
+discovery:
+  provider: brave_search
+  api_key_env: BRAVE_SEARCH_API_KEY
+  cache_ttl_hours: 168              # 7 days
+
+  validate_mode:
+    max_queries_per_account: 1
+    skip_if_title_in_landing: true
+
+  discover_mode:
+    queries_per_account: 2
+    min_confidence_score: 6
+    min_confidence_gap: 3
+
+  blacklisted_domains:
+    - linkedin.com
+    - facebook.com
+    - paginasamarillas.com
+    - crunchbase.com
+    - bloomberg.com
+    - emis.com
+    - zoominfo.com
+    - dnb.com
+
+  expansion:
+    mailserver_prefixes: [mx, mail, smtp, imap, pop]
+    asset_prefixes: [cdn, static, assets, media, img]
+    non_prod_keywords: [dev, staging, test, uat, qa, sandbox, beta]
+    site_priority: [www, app, portal, tienda, shop, api, admin, secure]
+    max_sites_per_account: 5
+    liveness_timeout_sec: 5
