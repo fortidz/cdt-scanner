@@ -1,0 +1,11 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "gunicorn/21.2.0",
+    "x-frame-options": "DENY",
+    "content-type": "text/html"
+  },
+  "cookies": ["csrftoken=abc123; Path=/", "sessionid=def456; Path=/"],
+  "body": "<html><body><form><input type=\"hidden\" name=\"csrfmiddlewaretoken\" value=\"xyz\"></form></body></html>"
+}

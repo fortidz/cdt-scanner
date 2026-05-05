@@ -1,0 +1,11 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "x-nextjs-cache": "HIT",
+    "x-nextjs-prerender": "1",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body><script src=\"/_next/static/chunks/main.js\"></script></body></html>"
+}

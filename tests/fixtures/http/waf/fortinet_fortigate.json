@@ -1,0 +1,10 @@
+{
+  "url": "https://gw.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "FortiGate",
+    "content-type": "text/html"
+  },
+  "cookies": ["FGTServer=12345; Path=/"],
+  "body": "<html><body>fg</body></html>"
+}

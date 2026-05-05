@@ -1,0 +1,10 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "Apache/2.4.57",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><head><title>Joomla site</title><meta name=\"generator\" content=\"Joomla! - Open Source Content Management\"></head><body><script src=\"/media/jui/js/jquery.min.js\"></script></body></html>"
+}

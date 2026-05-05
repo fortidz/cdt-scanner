@@ -1,0 +1,10 @@
+{
+  "url": "https://shop.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "nginx/1.27.1",
+    "content-type": "text/html"
+  },
+  "cookies": ["X-Magento-Vary=abc123; Path=/"],
+  "body": "<html><body><link href=\"/skin/frontend/default/style.css\" rel=\"stylesheet\"><script>requirejs.config({paths: {Magento_Ui: '/static/Magento_Ui/'}});</script></body></html>"
+}

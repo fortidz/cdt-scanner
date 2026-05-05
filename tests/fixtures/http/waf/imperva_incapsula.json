@@ -1,0 +1,11 @@
+{
+  "url": "https://protected.example/",
+  "status": 200,
+  "headers": {
+    "x-iinfo": "9-12345678-12345678 NNNN CT(0 0 0) RT(1234567890 12) q(0 0 0 0) r(0 0)",
+    "x-cdn": "Incapsula",
+    "content-type": "text/html"
+  },
+  "cookies": ["incap_ses_123_456=abc; Path=/", "visid_incap_456=xyz; Path=/"],
+  "body": "<html><body>protected</body></html>"
+}

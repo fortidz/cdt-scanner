@@ -1,0 +1,10 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "Pepyaka/1.21.14",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><head><title>Acme</title><meta name=\"generator\" content=\"Wix.com Website Builder\"></head><body><img src=\"https://static.wixstatic.com/media/abc.jpg\"></body></html>"
+}

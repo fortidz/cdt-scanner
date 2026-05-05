@@ -1,0 +1,11 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "FortiWeb",
+    "x-fw-debug": "1",
+    "content-type": "text/html"
+  },
+  "cookies": ["FORTIWAFSID=abcdef; Path=/"],
+  "body": "<html><body>protected</body></html>"
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "Barracuda",
+    "content-type": "text/html"
+  },
+  "cookies": ["barra_counter_session=12345; Path=/"],
+  "body": "<html><body>barracuda</body></html>"
+}

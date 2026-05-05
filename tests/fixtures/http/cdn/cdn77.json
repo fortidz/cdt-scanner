@@ -1,0 +1,11 @@
+{
+  "url": "https://cdn.acme.example/",
+  "status": 200,
+  "headers": {
+    "x-cdn77-server-id": "12345",
+    "x-cdn77-cache": "HIT",
+    "content-type": "image/svg+xml"
+  },
+  "cookies": [],
+  "body": ""
+}

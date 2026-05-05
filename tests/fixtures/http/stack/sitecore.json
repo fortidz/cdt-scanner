@@ -1,0 +1,10 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "Microsoft-IIS/10.0",
+    "content-type": "text/html"
+  },
+  "cookies": ["SC_ANALYTICS_GLOBAL_COOKIE=abc; Path=/"],
+  "body": "<html><body><script src=\"/sitecore/js/main.js\"></script></body></html>"
+}

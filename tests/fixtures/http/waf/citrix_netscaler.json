@@ -1,0 +1,10 @@
+{
+  "url": "https://gw.acme.example/",
+  "status": 200,
+  "headers": {
+    "via": "NS-CACHE-9.3: 100",
+    "content-type": "text/html"
+  },
+  "cookies": ["citrix_ns_id=abc; Path=/", "NSC_TMAS=xyz; Path=/"],
+  "body": "<html><body>nsc</body></html>"
+}

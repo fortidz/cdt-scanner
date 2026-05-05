@@ -1,0 +1,12 @@
+{
+  "url": "https://acme.example/admin",
+  "status": 403,
+  "headers": {
+    "server": "cloudflare",
+    "cf-ray": "8c3f111111111111-MIA",
+    "cf-mitigated": "challenge",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<!DOCTYPE html><html><head><title>Attention Required! | Cloudflare</title></head><body><h1>Access denied</h1><p>Ray ID: <strong>8c3f111111111111</strong></p><div class=\"cf-error-details\">Your IP has been flagged.</div></body></html>"
+}

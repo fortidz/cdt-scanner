@@ -1,0 +1,10 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "nginx/1.24.0",
+    "content-type": "text/html"
+  },
+  "cookies": ["laravel_session=abc; Path=/", "XSRF-TOKEN=xyz; Path=/"],
+  "body": "<html><body>laravel</body></html>"
+}

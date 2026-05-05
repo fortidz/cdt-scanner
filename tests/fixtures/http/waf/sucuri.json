@@ -1,0 +1,12 @@
+{
+  "url": "https://acme.example/",
+  "status": 200,
+  "headers": {
+    "x-sucuri-id": "12345",
+    "x-sucuri-cache": "HIT",
+    "server": "Sucuri/Cloudproxy",
+    "content-type": "text/html"
+  },
+  "cookies": [],
+  "body": "<html><body>sucuri</body></html>"
+}

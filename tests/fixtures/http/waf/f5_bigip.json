@@ -1,0 +1,10 @@
+{
+  "url": "https://app.acme.example/",
+  "status": 200,
+  "headers": {
+    "server": "BigIP",
+    "content-type": "text/html"
+  },
+  "cookies": ["TS01abc1234=xyz; Path=/", "BIGipServer_pool=987654.20480.0000; Path=/"],
+  "body": "<html><body>f5</body></html>"
+}
