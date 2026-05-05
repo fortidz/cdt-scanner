@@ -1,0 +1,9 @@
+{
+  "apex": "shop.acme.example",
+  "a_records": ["13.224.50.10"],
+  "aaaa_records": [],
+  "cname_chain": [
+    "shop.acme.example.cdn.acme-internal.example",
+    "d111111abcdef8.cloudfront.net"
+  ]
+}

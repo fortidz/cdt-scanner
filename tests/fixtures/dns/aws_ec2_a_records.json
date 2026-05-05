@@ -1,0 +1,6 @@
+{
+  "apex": "ec2-example.compute.amazonaws.com",
+  "a_records": ["54.239.28.85"],
+  "aaaa_records": [],
+  "cname_chain": []
+}

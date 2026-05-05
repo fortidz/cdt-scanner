@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "headers": {
+    "server": "cloudflare",
+    "cf-ray": "8c3f0f0f0f0f0f0f-MIA",
+    "cf-cache-status": "DYNAMIC",
+    "content-type": "text/html; charset=utf-8",
+    "strict-transport-security": "max-age=31536000"
+  },
+  "body": "<!DOCTYPE html><html><head><title>Protected</title></head><body>Site behind Cloudflare</body></html>"
+}

@@ -1,0 +1,5 @@
+{
+  "url": "https://example.com",
+  "identwaf_result": ["Cloudflare"],
+  "genericdetect_result": false
+}

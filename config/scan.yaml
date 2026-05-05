@@ -1,0 +1,72 @@
+# Scan tunables (Phase 3) — passive + browser scanners + tool wrappers.
+
+scan:
+  user_agent_default: "CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)"
+
+  timeouts:
+    dns_sec: 5
+    whois_sec: 10
+    browser_sec: 15
+    wafw00f_sec: 30
+
+  rate_limit:
+    concurrency_default: 20
+    per_key_rps_default: 2.0
+
+  ip_ranges:
+    refresh_ttl_hours: 24
+    aws_url: "https://ip-ranges.amazonaws.com/ip-ranges.json"
+    gcp_url: "https://www.gstatic.com/ipranges/cloud.json"
+    oci_url: "https://docs.oracle.com/iaas/tools/public_ip_ranges.json"
+    cloudflare_v4_url: "https://www.cloudflare.com/ips-v4"
+    cloudflare_v6_url: "https://www.cloudflare.com/ips-v6"
+    fastly_url: "https://api.fastly.com/public-ip-list"
+    # Microsoft rotates the Azure ServiceTags JSON behind a download page;
+    # operator must pin a specific URL when needed. Default disabled.
+    azure_servicetags_url: null
+
+  # rDNS suffix patterns mapped to provider (v0.4 §14.2.2). Glob-style: a leading
+  # ``*.`` is treated as "subdomain of". Match is case-insensitive.
+  rdns_patterns:
+    aws:
+      - "*.compute.amazonaws.com"
+      - "*.compute-1.amazonaws.com"
+      - "*.cloudfront.net"
+      - "*.amazonaws.com"
+    azure:
+      - "*.cloudapp.net"
+      - "*.cloudapp.azure.com"
+      - "*.azurewebsites.net"
+      - "*.azureedge.net"
+      - "*.azurefd.net"
+    gcp:
+      - "*.googleusercontent.com"
+      - "*.1e100.net"
+      - "*.bc.googleusercontent.com"
+    oci:
+      - "*.oraclecloud.com"
+      - "*.oraclevcn.com"
+    cloudflare:
+      - "*.cloudflare.com"
+      - "*.cloudflaressl.com"
+    akamai:
+      - "*.akamaiedge.net"
+      - "*.edgekey.net"
+      - "*.edgesuite.net"
+      - "*.akamaized.net"
+
+  # ASN -> provider table (v0.4 §14.2.3). Keys are decimal AS numbers.
+  asn_table:
+    14618: AWS
+    16509: AWS
+    14061: AWS
+    8075: Azure
+    8068: Azure
+    15169: GCP
+    31898: OCI
+    63775: OCI
+    13335: Cloudflare
+    20940: Akamai
+    16625: Akamai
+    16702: Akamai
+    54113: Fastly
