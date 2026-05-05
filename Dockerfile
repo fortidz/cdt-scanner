@@ -6,7 +6,7 @@ FROM kalilinux/kali-rolling@sha256:1fd0364490011f245688c6ed9fee498a11cd779badfbb
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3 python3-venv python3-pip \
+        python3 python3-venv python3-pip python3-dev \
         build-essential libffi-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
