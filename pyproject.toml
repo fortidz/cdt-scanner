@@ -7,7 +7,7 @@ name = "cdt"
 version = "0.1.0"
 description = "Cloud Development Tool — Site Discovery & Exposure Scanner"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 license = { text = "Proprietary" }
 authors = [{ name = "Dave", email = "eiz311@gmail.com" }]
 
