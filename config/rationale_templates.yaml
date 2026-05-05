@@ -1,0 +1,25 @@
+# config/rationale_templates.yaml
+#
+# Drop-in from v0.5 §5.9 / v0.4 §7.5. Templates for OpportunityRationale.
+# When multiple recommendations apply, they are concatenated with "; ".
+#
+# Variables available in templates:
+#   {PrimaryHyperScaler} — "AWS" | "Azure" | "GCP" | "OCI" | "-"
+#   {WAFVendor}          — vendor name (or "-" when unknown)
+#   {RiskScoreBand}      — "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+#   {Complexity}         — "One CSP" | "Two CSP" | "Three CSP" | "Four CSP"
+#   {ListCSPs}           — joined hyperscalers, e.g. "AWS+GCP"
+
+templates:
+  appsec_no_waf_cloud:
+    condition: "RecommendsFortiAppSec=Yes AND WAF=No AND PublicCloud=Yes"
+    template: "Sitio vivo sin WAF + infra en {PrimaryHyperScaler} → FortiAppSec Cloud WAF."
+  appsec_displacement:
+    condition: "RecommendsFortiAppSec=Yes AND WAF=Yes"
+    template: "WAF {WAFVendor} detectado con riesgo {RiskScoreBand} → displacement con FortiAppSec."
+  cnapp_multicsp:
+    condition: "RecommendsFortiCNAPP=Yes"
+    template: "{Complexity} ({ListCSPs}) → FortiCNAPP para posture cloud-native."
+  fortiweb_onprem:
+    condition: "RecommendsFortiWeb=Yes"
+    template: "Infra fuera de cloud público sin WAF → FortiWeb VM/Appliance."
