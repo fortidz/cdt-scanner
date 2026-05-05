@@ -1,0 +1,36 @@
+# Nikto skip allowlist (v0.5 §5.8). Government domains and central banks
+# in the LATAM scope are excluded from nikto runs to avoid even the
+# appearance of unauthorised scanning. Operator can extend this file via PR.
+
+version: "1.0.0"
+
+skip_suffixes:
+  - ".gob.ec"
+  - ".gob.pe"
+  - ".gob.cl"
+  - ".gov.py"
+  - ".gub.uy"
+  - ".gob.bo"
+  - ".gob.ve"
+  - ".mil.ec"
+  - ".mil.pe"
+  - ".mil.cl"
+  - ".mil.py"
+  - ".mil.uy"
+  - ".mil.bo"
+  - ".mil.ve"
+
+skip_apex:
+  - "bce.fin.ec"
+  - "bcrp.gob.pe"
+  - "bcentral.cl"
+  - "bcb.gob.bo"
+  - "bcp.gov.py"
+  - "bcu.gub.uy"
+  - "bcv.org.ve"
+
+on_skip:
+  emit_finding: true
+  finding_code: "NIKTO_SKIPPED_SENSITIVE_DOMAIN"
+  severity: "Low"
+  message: "Nikto skipped due to nikto_skip.yaml rule."

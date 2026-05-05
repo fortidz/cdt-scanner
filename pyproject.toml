@@ -30,6 +30,9 @@ dependencies = [
     "python-whois~=0.9",
     "ipwhois~=1.2",
     "cryptography>=42",
+    # Pin: python-Wappalyzer 0.3 imports pkg_resources, removed in setuptools >= 81.
+    # Track upstream fix or migrate to a maintained fork (v0.6 backlog).
+    "setuptools<81",
 ]
 
 [project.optional-dependencies]
@@ -56,7 +59,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "ASYNC"]
-ignore = ["S101"]
+# ASYNC240 wants anyio/trio for filesystem ops; we use asyncio + tiny temp
+# files where the syscall cost is negligible. S110 is acceptable in narrow
+# best-effort cleanup paths where logging the error itself would be noise.
+ignore = ["S101", "ASYNC240", "S110"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "S105", "S106"]
