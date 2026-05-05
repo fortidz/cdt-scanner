@@ -32,11 +32,18 @@ def test_cli__scan_help_contains_flags() -> None:
         assert flag in result.stdout
 
 
-def test_cli__scan_stub_exits_zero(tmp_path: Path) -> None:
+def test_cli__scan_offline_exits_zero(tmp_path: Path) -> None:
+    """Phase 8a: --no-network runs the orchestrator end-to-end with offline stubs."""
+
     csv_path = tmp_path / "in.csv"
     csv_path.write_text("Title,Country,Website\nDemo,Ecuador,demo.com\n", encoding="utf-8")
-    result = runner.invoke(app, ["scan", "--in", str(csv_path)])
+    out_dir = tmp_path / "out"
+    result = runner.invoke(
+        app, ["scan", "--in", str(csv_path), "--out", str(out_dir), "--no-network"]
+    )
     assert result.exit_code == 0
+    assert (out_dir / "accounts_enriched.csv").exists()
+    assert (out_dir / "validation_issues.csv").exists()
 
 
 def test_cli__validate_stub_exits_zero(tmp_path: Path) -> None:
@@ -51,13 +58,17 @@ def test_cli__doctor_stub_exits_zero() -> None:
     assert result.exit_code == 0
 
 
-def test_cli__diff_stub_exits_zero(tmp_path: Path) -> None:
+def test_cli__diff_missing_baseline_exits_3(tmp_path: Path) -> None:
+    """Phase 8a: diff is real and reports E03 when baseline CSV is missing."""
+
     baseline = tmp_path / "a"
     current = tmp_path / "b"
     baseline.mkdir()
     current.mkdir()
-    result = runner.invoke(app, ["diff", "--baseline", str(baseline), "--current", str(current)])
-    assert result.exit_code == 0
+    result = runner.invoke(
+        app, ["diff", "--baseline", str(baseline), "--current", str(current)]
+    )
+    assert result.exit_code == 3
 
 
 def test_cli__dry_run_stub_exits_zero(tmp_path: Path) -> None:
