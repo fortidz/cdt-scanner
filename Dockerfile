@@ -37,6 +37,9 @@ RUN apt-get update && \
     apt-get clean
 
 RUN useradd -m -u 1000 -s /bin/bash cdt
+
+RUN mkdir -p /app/in /app/out /app/cache && chown -R cdt:cdt /app
+
 USER cdt
 WORKDIR /home/cdt
 
@@ -44,8 +47,6 @@ COPY --from=builder --chown=cdt:cdt /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-
-RUN mkdir -p /app/in /app/out /app/cache
 
 ENTRYPOINT ["python", "-m", "cdt"]
 CMD ["--help"]
