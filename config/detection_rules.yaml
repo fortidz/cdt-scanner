@@ -1,0 +1,548 @@
+# Detection rule pack v1 (v0.5 §5.3–§5.7).
+#
+# Authoritative source for WAF / CDN / Cloud / CMS / framework / web-server
+# detection. Every PR that mutates this file must:
+#   1. Bump ``version`` (semver) — CI blocks otherwise.
+#   2. Land at least one fixture under ``tests/fixtures/http/<category>/`` per
+#      new signal predicate (per cdt-scanner-dev skill §4 + v0.4 §19.8).
+#
+# The runtime loads + validates this file with pydantic in
+# ``src/cdt/detect/rules.py``. An ``engine_version_min`` greater than the
+# runtime's version aborts the load.
+
+version: "1.0.0"
+engine_version_min: "0.5.0"
+
+scoring:
+  primary_signal_points: 10
+  secondary_signal_points: 5
+  block_page_points: 7
+  ip_range_match_points: 10
+  reverse_dns_points: 7
+  asn_match_points: 5
+  cname_match_points: 6
+  server_header_points: 2
+  high_confidence_threshold: 10
+  high_confidence_min_gap: 5
+
+waf_vendors:
+
+  - vendor: Cloudflare
+    cdn_capable: true
+    signals:
+      - kind: primary
+        when:
+          all:
+            - header: { name: "server", equals_ci: "cloudflare" }
+            # cf-ray POP codes are uppercase in real CF responses; use
+            # case-insensitive regex (spec delta — see PR description).
+            - header: { name: "cf-ray", regex_ci: "^[a-f0-9]+-[a-z0-9]{3,4}$" }
+      - kind: secondary
+        when:
+          any:
+            - cookie: { name_in: ["__cfduid", "__cf_bm", "cf_clearance"] }
+            - header: { name: "cf-cache-status", present: true }
+            - cname: { suffix_in: [".cloudflare.net", ".cloudflare.com"] }
+      - kind: block_page
+        when:
+          all:
+            - status_in: [403, 429]
+            - body_regex_any:
+                - "Attention Required! \\| Cloudflare"
+                - "Ray ID: <strong>[a-f0-9]+"
+                - "cf-error-details"
+    waf_active_indicators:
+      - challenge_page: { regex: "cf_chl_cd|__cf_chl_jschl_tk__" }
+      - header: { name: "cf-mitigated", present: true }
+      - probe_403_on_dotenv: true
+
+  - vendor: AWS_CloudFront_WAF
+    cdn_capable: true
+    signals:
+      - kind: primary
+        when:
+          all:
+            - header: { name: "via", regex: "[0-9.]+ [a-zA-Z0-9]+\\.cloudfront\\.net" }
+            - header: { name: "x-amz-cf-id", present: true }
+      - kind: secondary
+        when:
+          any:
+            - header: { name: "x-cache", present: true }
+            - header: { name: "x-amz-cf-pop", present: true }
+            - cname: { suffix: ".cloudfront.net" }
+      - kind: block_page
+        when:
+          all:
+            - status_in: [403]
+            - body_contains_any:
+                - "Request blocked"
+                - "<title>403 ERROR | CloudFront</title>"
+
+  - vendor: Azure_FrontDoor_WAF
+    cdn_capable: true
+    signals:
+      - kind: primary
+        when:
+          header: { name: "x-azure-ref", present: true }
+      - kind: secondary
+        when:
+          any:
+            - header: { name: "x-msedge-ref", present: true }
+            - cname: { suffix_in: [".azurefd.net", ".azureedge.net"] }
+      - kind: block_page
+        when:
+          all:
+            - status_in: [403]
+            - body_contains_any:
+                - "Microsoft-Azure-Application-Gateway/"
+                - "The request is blocked"
+
+  - vendor: Akamai
+    cdn_capable: true
+    signals:
+      - kind: primary
+        when:
+          any:
+            - header: { name: "server", regex_ci: "^Akamai(GHost|NetStorage)" }
+      - kind: secondary
+        when:
+          any:
+            - header: { name_regex: "^x-akamai-" }
+            - cookie: { name_in: ["ak_bmsc", "bm_sz", "_abck"] }
+            - cname: { suffix_in: [".akamaized.net", ".edgekey.net", ".edgesuite.net"] }
+      - kind: block_page
+        when:
+          any:
+            - body_regex: "Reference #\\d+\\.[a-f0-9]+\\.\\d+\\.[a-f0-9]+"
+            - body_contains: "Access Denied"
+            - body_contains: "You don't have permission to access"
+
+  - vendor: Fortinet_FortiWeb
+    cdn_capable: false
+    signals:
+      - kind: primary
+        when:
+          header: { name: "server", regex_ci: "^FortiWeb" }
+      - kind: secondary
+        when:
+          any:
+            - cookie: { name: "FORTIWAFSID" }
+            - header: { name: "x-fw-debug", present: true }
+      - kind: block_page
+        when:
+          any:
+            - body_contains: "<title>FortiWeb</title>"
+            - body_contains: "Block Rule ID:"
+            - body_contains: "/error_pages/"
+
+  - vendor: Fortinet_FortiGate
+    cdn_capable: false
+    signals:
+      - kind: primary
+        when:
+          header: { name: "server", regex_ci: "^FortiGate" }
+      - kind: secondary
+        when:
+          cookie: { name: "FGTServer" }
+      - kind: block_page
+        when:
+          any:
+            - body_contains: "Blocked because of IPS sensor"
+            - body_contains: "FortiGate Web Filter"
+
+  - vendor: Imperva
+    cdn_capable: true
+    signals:
+      - kind: primary
+        when:
+          any:
+            - header: { name: "x-iinfo", present: true }
+            - header: { name: "x-cdn", equals_ci: "incapsula" }
+      - kind: secondary
+        when:
+          any:
+            - cookie: { name_regex: "^(incap_ses_|visid_incap_)" }
+            - cname: { suffix: ".incapdns.net" }
+      - kind: block_page
+        when:
+          body_regex: "Request unsuccessful\\. Incapsula incident ID:"
+
+  - vendor: F5_BIGIP_ASM
+    cdn_capable: false
+    signals:
+      - kind: primary
+        when:
+          header: { name: "server", regex_ci: "^BigIP" }
+      - kind: secondary
+        when:
+          cookie: { name_regex: "^(TS[0-9a-f]{7,8}=|BIGipServer)" }
+      - kind: block_page
+        when:
+          any:
+            - body_contains: "The requested URL was rejected"
+            - body_regex: "Support ID: \\d+"
+
+  - vendor: Sucuri
+    cdn_capable: true
+    signals:
+      - kind: primary
+        when:
+          any:
+            - header: { name: "x-sucuri-id", present: true }
+            - header: { name: "x-sucuri-cache", present: true }
+      - kind: secondary
+        when:
+          header: { name: "server", regex_ci: "^Sucuri/Cloudproxy" }
+      - kind: block_page
+        when:
+          body_contains: "Access Denied - Sucuri Website Firewall"
+
+  - vendor: Barracuda
+    cdn_capable: false
+    signals:
+      - kind: primary
+        when:
+          header: { name: "server", regex_ci: "^Barracuda" }
+      - kind: secondary
+        when:
+          cookie: { name: "barra_counter_session" }
+      - kind: block_page
+        when:
+          body_contains: "You've been blocked"
+
+  - vendor: Citrix_NetScaler
+    cdn_capable: false
+    signals:
+      - kind: primary
+        when:
+          header: { name: "via", regex: "NS-CACHE" }
+      - kind: secondary
+        when:
+          cookie: { name_regex: "^(citrix_ns_id|NSC_)" }
+
+  - vendor: StackPath
+    cdn_capable: true
+    signals:
+      - kind: primary
+        when:
+          header: { name: "x-sp-request-id", present: true }
+      - kind: secondary
+        when:
+          cname: { suffix: ".stackpathdns.com" }
+
+  - vendor: Wallarm
+    cdn_capable: false
+    signals:
+      - kind: primary
+        when:
+          header: { name: "nemesida", present: true }
+
+
+cdn_only_vendors:
+
+  - vendor: Fastly
+    signals:
+      - any:
+          - header: { name: "x-served-by", regex: "^cache-[a-z0-9]+" }
+          - header: { name: "x-cache", regex: "^(HIT|MISS)" }
+          - header: { name_regex: "^fastly-debug-" }
+          - cname: { suffix_in: [".fastly.net", ".fastlylb.net"] }
+
+  - vendor: KeyCDN
+    signals:
+      - header: { name: "server", regex_ci: "^keycdn-engine" }
+
+  - vendor: BunnyCDN
+    signals:
+      - header: { name: "server", regex_ci: "^BunnyCDN" }
+
+  - vendor: CDN77
+    signals:
+      - header: { name_regex: "^x-cdn77-" }
+
+  - vendor: Google_Cloud_CDN
+    signals:
+      - all:
+          - header: { name: "via", regex: "google" }
+          - asn_in: [15169]
+
+
+cloud_providers:
+
+  - provider: AWS
+    ip_ranges_url: "https://ip-ranges.amazonaws.com/ip-ranges.json"
+    ip_ranges_format: aws_json
+    rdns_patterns:
+      - "*.compute.amazonaws.com"
+      - "*.compute-1.amazonaws.com"
+      - "*.cloudfront.net"
+      - "*.amazonaws.com"
+    asns: [14618, 16509, 14061]
+    cname_suffixes:
+      - ".amazonaws.com"
+      - ".cloudfront.net"
+    server_headers:
+      - regex_ci: "^AmazonS3$"
+
+  - provider: Azure
+    ip_ranges_url: "https://www.microsoft.com/en-us/download/details.aspx?id=56519"
+    ip_ranges_format: azure_servicetags_json
+    ip_ranges_refresh_strategy: monthly_manual_pin
+    rdns_patterns:
+      - "*.cloudapp.net"
+      - "*.cloudapp.azure.com"
+      - "*.azurewebsites.net"
+      - "*.azureedge.net"
+      - "*.azurefd.net"
+    asns: [8075, 8068]
+    cname_suffixes:
+      - ".azurewebsites.net"
+      - ".azureedge.net"
+      - ".azurefd.net"
+    server_headers:
+      - regex_ci: "^Microsoft-IIS/"
+        confidence_modifier: 0.5
+
+  - provider: GCP
+    ip_ranges_url: "https://www.gstatic.com/ipranges/cloud.json"
+    ip_ranges_format: gcp_json
+    rdns_patterns:
+      - "*.googleusercontent.com"
+      - "*.1e100.net"
+      - "*.bc.googleusercontent.com"
+    asns: [15169]
+    cname_suffixes:
+      - ".googleapis.com"
+      - ".appspot.com"
+    server_headers:
+      - regex_ci: "^(Google Frontend|gws)$"
+
+  - provider: OCI
+    ip_ranges_url: "https://docs.oracle.com/iaas/tools/public_ip_ranges.json"
+    ip_ranges_format: oci_json
+    rdns_patterns:
+      - "*.oraclecloud.com"
+      - "*.oraclevcn.com"
+    asns: [31898, 63775]
+    cname_suffixes:
+      - ".oraclecloud.com"
+
+  - provider: Cloudflare
+    role: edge_only
+    ip_ranges_urls:
+      - "https://www.cloudflare.com/ips-v4"
+      - "https://www.cloudflare.com/ips-v6"
+    ip_ranges_format: text_cidrs
+    rdns_patterns:
+      - "*.cloudflare.com"
+      - "*.cloudflaressl.com"
+    asns: [13335]
+    cname_suffixes:
+      - ".cloudflare.com"
+      - ".cloudflare.net"
+
+  - provider: Fastly
+    role: edge_only
+    ip_ranges_url: "https://api.fastly.com/public-ip-list"
+    ip_ranges_format: fastly_json
+    rdns_patterns:
+      - "*.fastly.net"
+      - "*.fastlylb.net"
+    asns: [54113]
+
+  - provider: Akamai
+    role: edge_only
+    ip_ranges_url: null
+    rdns_patterns:
+      - "*.akamaiedge.net"
+      - "*.edgekey.net"
+      - "*.edgesuite.net"
+      - "*.akamaized.net"
+    asns: [20940, 16625, 16702]
+    cname_suffixes:
+      - ".akamaiedge.net"
+      - ".edgekey.net"
+      - ".edgesuite.net"
+      - ".akamaized.net"
+
+  - provider: Alibaba
+    asns: [45102]
+
+  - provider: IBM
+    asns: [58779, 36351]
+
+datacenter_fallback:
+  description: |
+    If no provider matches but the IP belongs to a regional ISP/telco
+    (Telefónica, Claro, Movistar, CANTV, CNT, etc.), CloudProvider is
+    assigned the value "datacenter" and the ASN org is annotated in
+    sites.csv.
+  asn_orgs_treated_as_datacenter:
+    - "Telefonica"
+    - "Claro"
+    - "Movistar"
+    - "CANTV"
+    - "CNT"
+    - "Entel"
+    - "Telmex"
+    - "GTD"
+
+
+cms:
+
+  - name: WordPress
+    signals:
+      - any:
+          - meta_generator_regex: "^WordPress\\s+(\\d+\\.\\d+(\\.\\d+)?)"
+          - body_path_present_any: ["/wp-content/", "/wp-includes/", "/wp-json/"]
+          - cookie: { name_regex: "^wordpress_logged_in_" }
+    version_extract:
+      from: meta_generator
+      regex: "WordPress\\s+(\\d+\\.\\d+(?:\\.\\d+)?)"
+
+  - name: Drupal
+    signals:
+      - any:
+          - header: { name: "x-generator", regex_ci: "^Drupal" }
+          - body_path_present: "/sites/default/files/"
+          - body_contains: "misc/drupal.js"
+    version_extract:
+      from: header
+      header_name: "x-generator"
+      regex: "Drupal\\s+(\\d+)"
+
+  - name: Joomla
+    signals:
+      - any:
+          - meta_generator_regex: "^Joomla!"
+          - body_path_present: "/media/jui/"
+
+  - name: Magento
+    signals:
+      - any:
+          - cookie: { name: "X-Magento-Vary" }
+          - body_path_present: "/skin/frontend/"
+          - body_contains: "Magento_Ui/"
+
+  - name: Shopify
+    signals:
+      - any:
+          - header: { name_regex: "^x-shop(id|ify-)" }
+          - cname: { suffix: ".myshopify.com" }
+
+  - name: Wix
+    signals:
+      - any:
+          - meta_generator_regex: "^Wix\\.com Website Builder"
+          - body_contains: "static.wixstatic.com"
+
+  - name: Squarespace
+    signals:
+      - header: { name: "x-served-by", regex_ci: "squarespace-edge" }
+
+  - name: Ghost
+    signals:
+      - any:
+          - meta_generator_regex: "^Ghost\\s"
+          - body_path_present: "/ghost/"
+    version_extract:
+      from: meta_generator
+      regex: "Ghost\\s+(\\d+\\.\\d+(?:\\.\\d+)?)"
+
+  - name: Strapi
+    signals:
+      - header: { name: "x-powered-by", equals_ci: "Strapi" }
+
+  - name: Sitecore
+    signals:
+      - any:
+          - cookie: { name: "SC_ANALYTICS_GLOBAL_COOKIE" }
+          - body_path_present: "/sitecore/"
+
+
+frameworks:
+
+  - name: Django
+    signals:
+      - all:
+          - cookie: { name_in: ["csrftoken", "sessionid"] }
+          - any:
+              - header: { name: "x-frame-options", equals_ci: "DENY" }
+              - body_contains: "csrfmiddlewaretoken"
+
+  - name: Rails
+    signals:
+      - any:
+          - cookie: { name_regex: "^_.*_session$" }
+          - header: { name: "x-powered-by", regex_ci: "Phusion Passenger" }
+
+  - name: Laravel
+    signals:
+      - cookie: { name_in: ["laravel_session", "XSRF-TOKEN"] }
+
+  - name: Express
+    signals:
+      - header: { name: "x-powered-by", equals_ci: "Express" }
+
+  - name: ASP.NET
+    signals:
+      - any:
+          - header: { name: "x-powered-by", regex_ci: "^ASP\\.NET" }
+          - cookie: { name: "ASP.NET_SessionId" }
+
+  - name: Next.js
+    signals:
+      - any:
+          - header: { name_regex: "^x-nextjs-" }
+          - body_path_present: "/_next/"
+
+  - name: Nuxt
+    signals:
+      - body_contains: "__NUXT__"
+
+
+web_servers:
+  # Banner mapping. Banner presence is a +server_header_points signal. When the
+  # banner is hidden (e.g. CDN intercept), the orchestrator falls back to TLS
+  # fingerprint, which lives outside this YAML.
+  banner_map:
+    - regex: "^nginx/(\\d+\\.\\d+\\.\\d+)"
+      assign: "nginx/$1"
+    - regex: "^Apache/(\\d+\\.\\d+\\.\\d+)"
+      assign: "Apache/$1"
+    - regex: "^Microsoft-IIS/(\\d+\\.\\d+)"
+      assign: "IIS/$1"
+    - regex: "^openresty/(\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?)"
+      assign: "openresty/$1"
+    - equals: "LiteSpeed"
+      assign: "LiteSpeed"
+    - equals_ci: "Caddy"
+      assign: "Caddy"
+    - equals_ci: "cloudflare"
+      assign: "-"
+
+
+hypothesis_resolution:
+  description: |
+    For every category (waf_vendor, cloud_provider, cdn, cms, web_server),
+    points are accumulated per hypothesis (one candidate vendor). The winning
+    hypothesis must satisfy BOTH of:
+      total_points >= scoring.high_confidence_threshold
+      total_points - second_best_points >= scoring.high_confidence_min_gap
+    Both met -> confidence = high.
+    Threshold met but gap small -> confidence = medium.
+    Threshold not met -> confidence = low; field defaults per
+    low_confidence_handling.
+
+low_confidence_handling:
+  field_default_when_low_confidence:
+    WAF: "Further investigation needed"
+    WAFVendor: "-"
+    CMSFramework: "-"
+    WebServer: "-"
+    CDN: "-"
+    CloudProvider: "-"
+  emit_finding:
+    code: "LOW_CONFIDENCE_<FIELD>"
+    severity: "Low"
+    message: "Hypothesis score below threshold or gap too small."
