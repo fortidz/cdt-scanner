@@ -1,0 +1,13 @@
+{
+  "ip": "54.239.28.85",
+  "ports": [22, 80, 443],
+  "cpes": [
+    "cpe:/a:apache:http_server:2.4.41",
+    "cpe:/a:php:php:7.4.3"
+  ],
+  "hostnames": [
+    "ec2-54-239-28-85.compute-1.amazonaws.com"
+  ],
+  "tags": ["cloud", "aws"],
+  "vulns": ["CVE-2021-44228"]
+}

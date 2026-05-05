@@ -1,0 +1,7 @@
+{
+  "web-servers": ["nginx"],
+  "cms": ["WordPress"],
+  "javascript-frameworks": ["jQuery", "React"],
+  "miscellaneous": ["Open Graph"],
+  "programming-languages": ["PHP"]
+}

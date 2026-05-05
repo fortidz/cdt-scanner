@@ -1,0 +1,5 @@
+[
+  {"fingerprint_sha256": "a1b2", "names": ["tipti.market", "www.tipti.market"], "validity_period": {"not_after": "2026-12-31"}},
+  {"fingerprint_sha256": "c3d4", "names": ["api.tipti.market"], "validity_period": {"not_after": "2026-09-30"}},
+  {"fingerprint_sha256": "e5f6", "names": ["admin.tipti.market"], "validity_period": {"not_after": "2027-02-15"}}
+]

@@ -1,0 +1,20 @@
+{
+  "ip": "20.62.146.1",
+  "services": [
+    {"port": 80, "service_name": "HTTP", "transport_protocol": "TCP"},
+    {"port": 443, "service_name": "HTTP", "transport_protocol": "TCP",
+     "certificate": "abc123"}
+  ],
+  "autonomous_system": {
+    "asn": 8075,
+    "name": "MICROSOFT-CORP-MSN-AS-BLOCK",
+    "country_code": "US"
+  },
+  "operating_system": {
+    "product": "Windows Server",
+    "vendor": "Microsoft"
+  },
+  "dns": {
+    "names": ["acme-azure.example", "acme.azurewebsites.net"]
+  }
+}
