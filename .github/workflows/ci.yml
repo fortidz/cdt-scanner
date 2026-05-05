@@ -53,9 +53,5 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build is expected to fail until the Kali base digest is pinned. The job
-      # validates that the Dockerfile parses and that pip-installable layers work
-      # against any non-Kali base while we wait for the digest.
-      - name: Validate Dockerfile
-        run: docker buildx build --progress=plain --load -t cdt:ci . || \
-             echo "::warning::Docker build did not complete — likely waiting on Kali digest pin."
+      - name: Build image
+        run: docker buildx build --progress=plain --load -t cdt:ci .
