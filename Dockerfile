@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # === Stage 1: builder ===
-FROM kalilinux/kali-rolling@sha256:ec813bf24bc1db698d7d8c9449de17438b3c60db225a88b3648f930781358291 AS builder
+FROM kalilinux/kali-rolling@sha256:1fd0364490011f245688c6ed9fee498a11cd779badfbb0b1d3a721d0f49f2d15 AS builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel && \
     pip install --no-cache-dir .
 
 # === Stage 2: runtime ===
-FROM kalilinux/kali-rolling@sha256:ec813bf24bc1db698d7d8c9449de17438b3c60db225a88b3648f930781358291
+FROM kalilinux/kali-rolling@sha256:1fd0364490011f245688c6ed9fee498a11cd779badfbb0b1d3a721d0f49f2d15
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
