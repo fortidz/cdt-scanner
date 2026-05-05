@@ -1,0 +1,24 @@
+[
+  {
+    "target": "https://acme.example/",
+    "http_status": 200,
+    "request_config": {
+      "headers": {"User-Agent": "CDT-Scanner/0.1"}
+    },
+    "plugins": {
+      "HTTPServer": {
+        "string": ["nginx/1.24.0"]
+      },
+      "HTML5": {
+        "string": ["HTML5"]
+      },
+      "Title": {
+        "string": ["Acme — Welcome"]
+      },
+      "Country": {
+        "string": ["UNITED STATES"],
+        "module": ["GeoIP"]
+      }
+    }
+  }
+]

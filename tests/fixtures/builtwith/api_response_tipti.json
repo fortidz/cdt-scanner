@@ -1,0 +1,28 @@
+{
+  "Results": [
+    {
+      "Result": {
+        "IsDB": "true",
+        "Paths": [
+          {
+            "Domain": "tipti.market",
+            "Url": "/",
+            "Technologies": [
+              {"Name": "Cloudflare", "Categories": ["CDN"], "FirstDetected": 1612345600000},
+              {"Name": "WordPress", "Categories": ["CMS"], "FirstDetected": 1612345600000},
+              {"Name": "nginx", "Categories": ["Web Servers"], "FirstDetected": 1612345600000}
+            ]
+          },
+          {
+            "Domain": "tipti.market",
+            "Url": "/about",
+            "Technologies": [
+              {"Name": "Google Analytics", "Categories": ["Analytics"]},
+              {"Name": "WordPress", "Categories": ["CMS"]}
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

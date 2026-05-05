@@ -1,0 +1,9 @@
+- Nikto v2.5.0
+---------------------------------------------------------------------------
++ Target IP:          93.184.216.34
++ Target Hostname:    acme.example
++ Target Port:        443
++ Start Time:         2026-04-15 14:32:11 (GMT0)
+---------------------------------------------------------------------------
++ /robots.txt: Found robots.txt file.
++ /sitemap.xml: Sitemap exposed.

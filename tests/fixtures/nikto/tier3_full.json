@@ -1,0 +1,13 @@
+{
+  "host": "acme.example",
+  "ip": "93.184.216.34",
+  "port": "443",
+  "scandate": "2026-04-15T14:32:11Z",
+  "vulnerabilities": [
+    {"OSVDB": "3268", "msg": "Directory indexing found", "uri": "/files/", "severity": "Medium"},
+    {"OSVDB": "3092", "msg": "Admin login page found", "uri": "/admin/", "severity": "Low"},
+    {"OSVDB": "3233", "msg": "/icons/README", "uri": "/icons/README", "severity": "Low"},
+    {"OSVDB": "0", "msg": "X-Frame-Options header is not present", "uri": "/", "severity": "Medium"},
+    {"OSVDB": "5292", "msg": "Server may leak inodes via ETags", "uri": "/", "severity": "Low"}
+  ]
+}

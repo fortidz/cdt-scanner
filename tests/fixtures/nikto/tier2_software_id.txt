@@ -1,0 +1,17 @@
+- Nikto v2.5.0
+---------------------------------------------------------------------------
++ Target IP:          93.184.216.34
++ Target Hostname:    acme.example
++ Target Port:        443
++ SSL Info:           Subject:  /CN=acme.example
+                      Ciphers:  ECDHE-RSA-AES128-GCM-SHA256
++ Start Time:         2026-04-15 14:32:11 (GMT0)
+---------------------------------------------------------------------------
++ Server: nginx/1.24.0
++ Cookie wp-settings created without the httponly flag
++ /readme.html: This WordPress file reveals the installed version.
++ /xmlrpc.php: XML-RPC may be vulnerable to attacks.
++ Cloudflare detected via header cf-ray: 8c3f0f0f0f0f0f0f-MIA
++ /admin/: Admin login page/section found.
++ End Time:           2026-04-15 14:33:47 (GMT0) (96 seconds)
+---------------------------------------------------------------------------

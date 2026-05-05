@@ -1,0 +1,24 @@
+[
+  {
+    "target": "https://blog.acme.example/",
+    "http_status": 200,
+    "plugins": {
+      "HTTPServer": {
+        "string": ["cloudflare"]
+      },
+      "WordPress": {
+        "version": ["6.4.2"],
+        "string": ["WordPress"]
+      },
+      "Cloudflare": {
+        "string": ["Cloudflare"]
+      },
+      "MetaGenerator": {
+        "string": ["WordPress 6.4.2"]
+      },
+      "Title": {
+        "string": ["Acme Blog"]
+      }
+    }
+  }
+]
