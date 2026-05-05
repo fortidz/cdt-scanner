@@ -1,0 +1,24 @@
+# cdt — root configuration file (v0.5 §2.10).
+# Flag values from the CLI override anything here.
+
+defaults:
+  tier: browser
+  concurrency: 20
+  cache_dir: ~/.cache/cdt
+  log_level: info
+  log_format: console
+  max_sites_per_account: 5
+
+discovery:
+  # Override on v0.4 §4: Google CSE deprecated "Search the entire web".
+  # Brave Search replaces it. See CLAUDE.md "Search provider" section.
+  provider: brave_search
+  api_key_env: BRAVE_SEARCH_API_KEY
+  endpoint: https://api.search.brave.com/res/v1/web/search
+  cache_ttl_hours: 168
+  blacklisted_domains: []
+
+detection:
+  rules_file: config/detection_rules.yaml
+  nikto_skip_file: config/nikto_skip.yaml
+  rationale_templates_file: config/rationale_templates.yaml
