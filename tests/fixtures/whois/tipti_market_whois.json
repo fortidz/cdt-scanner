@@ -1,0 +1,11 @@
+{
+  "domain_name": "TIPTI.MARKET",
+  "registrar": "GoDaddy.com, LLC",
+  "creation_date": "2018-04-12T19:33:21",
+  "updated_date": "2024-03-15T08:11:02",
+  "expiration_date": "2026-04-12T19:33:21",
+  "name_servers": ["NS1.TIPTI-EXAMPLE.NET", "NS2.TIPTI-EXAMPLE.NET"],
+  "status": ["clientTransferProhibited"],
+  "emails": ["abuse@godaddy.com"],
+  "text": "Registrar: GoDaddy.com, LLC\nCreation Date: 2018-04-12\n..."
+}

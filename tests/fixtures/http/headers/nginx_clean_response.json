@@ -1,0 +1,10 @@
+{
+  "status": 200,
+  "headers": {
+    "server": "nginx/1.24.0",
+    "content-type": "text/html; charset=utf-8",
+    "content-length": "1234",
+    "x-frame-options": "SAMEORIGIN"
+  },
+  "body": "<!DOCTYPE html><html><head><title>Acme</title></head><body><h1>Hello</h1></body></html>"
+}

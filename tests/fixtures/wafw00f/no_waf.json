@@ -1,0 +1,5 @@
+{
+  "url": "https://acme.example",
+  "identwaf_result": [],
+  "genericdetect_result": false
+}
