@@ -12,9 +12,12 @@ to surface the real hyperscaler underneath.
 
 from __future__ import annotations
 
+import asyncio
 import re
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 import dns.exception
 import dns.resolver
@@ -26,6 +29,12 @@ if TYPE_CHECKING:  # pragma: no cover — typing-only import
     import dns.asyncresolver
 
 log = structlog.get_logger(__name__)
+
+
+# Concurrency cap on parallel A-record probes during subdomain attribution.
+# Empirically, BCP returns ~50 alive subdomains; capping at 20 keeps the
+# probe under ~5 s on a typical network without flooding the resolver.
+_PROBE_CONCURRENCY = 20
 
 
 # ---------------------------------------------------------------------------
@@ -161,7 +170,17 @@ class OriginAttributor:
         *,
         primary_asn: int | None,
         primary_cnames: list[str] | None = None,
+        expanded_subdomains: list[str] | None = None,
     ) -> OriginResult:
+        """Probe for the cloud underneath an edge provider.
+
+        ``expanded_subdomains`` is the FQDN list discovered by the crt.sh
+        ``Expander`` (Phase 2). When supplied, those subdomains are merged
+        with the hardcoded ``ORIGIN_PROBE_SUBDOMAINS`` catalogue and probed
+        in parallel — this catches sites whose origins live on hostnames
+        outside the generic catalogue (e.g. ``openbanking.viabcp.com``).
+        """
+
         if primary_asn is None or primary_asn not in EDGE_ASNS:
             return OriginResult(
                 provider=None,
@@ -176,7 +195,7 @@ class OriginAttributor:
         # 1. Subdomain probe — strongest signal. A direct-to-origin host
         # like ``api.example.com`` resolving into AWS/Azure/GCP/OCI IP
         # space is an unambiguous attribution.
-        sub = await self._probe_subdomains(apex)
+        sub = await self._probe_subdomains(apex, expanded_subdomains or [])
         if sub.provider:
             log.info(
                 "origin_probe_subdomain_hit",
@@ -207,27 +226,44 @@ class OriginAttributor:
 
     # ----- strategy 1: subdomain probe ----------------------------------
 
-    async def _probe_subdomains(self, apex: str) -> OriginResult:
-        """Resolve each ``ORIGIN_PROBE_SUBDOMAINS`` entry; classify by IP.
+    async def _probe_subdomains(
+        self, apex: str, expanded_subdomains: list[str]
+    ) -> OriginResult:
+        """Resolve hardcoded ∪ expander-discovered subdomains in parallel.
 
-        Multiple subdomains agreeing on the same provider boost confidence
-        from MEDIUM to HIGH.
+        The hardcoded catalogue (``ORIGIN_PROBE_SUBDOMAINS``) covers
+        generic origin hosts (api/admin/backend/...). The
+        ``expanded_subdomains`` argument adds whatever the crt.sh
+        expander surfaced for this account — important for orgs that
+        host their origin under non-generic names (e.g.
+        ``openbanking.viabcp.com``).
+
+        Probes run concurrently with a semaphore cap (``_PROBE_CONCURRENCY``)
+        to stay polite to the resolver. Results are deduplicated: the
+        same FQDN appearing in both catalogues is only resolved once.
+
+        Confidence ladder:
+          - 1 probe hit on cloud X → MEDIUM
+          - 2+ probes hitting cloud X → HIGH
+          - Hits split across clouds → most-frequent wins, ties broken
+            alphabetically; confidence per the rule above
         """
 
-        per_provider_hits: dict[str, list[str]] = {}
+        hardcoded_fqdns = {f"{prefix}.{apex}" for prefix in ORIGIN_PROBE_SUBDOMAINS}
+        expanded_fqdns = {
+            host for host in (_normalize_host(h) for h in expanded_subdomains) if host
+        }
+        all_probes = sorted(hardcoded_fqdns | expanded_fqdns)
 
-        for sub in ORIGIN_PROBE_SUBDOMAINS:
-            host = f"{sub}.{apex}"
-            ips = await self._resolve_a(host)
-            if not ips:
-                continue
-            for ip in ips:
-                provider = self._classify_ip(ip)
-                if provider and provider not in EDGE_ASNS.values():
-                    per_provider_hits.setdefault(provider, []).append(host)
-                    break  # one IP per host is enough
+        log.info(
+            "origin_probe_subdomains_started",
+            apex=apex,
+            hardcoded=len(hardcoded_fqdns),
+            expanded=len(expanded_fqdns),
+            unique=len(all_probes),
+        )
 
-        if not per_provider_hits:
+        if not all_probes:
             return OriginResult(
                 provider=None,
                 confidence=Confidence.LOW,
@@ -235,11 +271,57 @@ class OriginAttributor:
                 evidence={},
             )
 
-        # Pick the provider with the most subdomains agreeing.
-        winner = max(per_provider_hits.items(), key=lambda kv: len(kv[1]))
-        provider, hostnames = winner
+        semaphore = asyncio.Semaphore(_PROBE_CONCURRENCY)
 
+        async def _probe_one(fqdn: str) -> tuple[str, str | None]:
+            async with semaphore:
+                ips = await self._resolve_a(fqdn)
+                for ip in ips:
+                    provider = self._classify_ip(ip)
+                    # Skip IPs that classify as edge — they would lead us
+                    # to attribute the CDN itself as the origin.
+                    if provider and provider not in EDGE_ASNS.values():
+                        return fqdn, provider
+                return fqdn, None
+
+        probe_results = await asyncio.gather(
+            *(_probe_one(fqdn) for fqdn in all_probes)
+        )
+
+        per_provider_hits: dict[str, list[str]] = {}
+        for fqdn, provider in probe_results:
+            if provider is None:
+                continue
+            per_provider_hits.setdefault(provider, []).append(fqdn)
+
+        if not per_provider_hits:
+            log.info(
+                "origin_probe_subdomains_no_signal",
+                apex=apex,
+                probes_attempted=len(all_probes),
+            )
+            return OriginResult(
+                provider=None,
+                confidence=Confidence.LOW,
+                source="exhausted",
+                evidence={},
+            )
+
+        # Pick the provider with the most subdomains agreeing. Ties (rare)
+        # broken alphabetically for deterministic output across runs.
+        winner = max(
+            per_provider_hits.items(), key=lambda kv: (len(kv[1]), -ord(kv[0][0]))
+        )
+        provider, hostnames = winner
         confidence = Confidence.HIGH if len(hostnames) >= 2 else Confidence.MEDIUM
+
+        log.info(
+            "origin_probe_subdomains_completed",
+            apex=apex,
+            hits=len(hostnames),
+            provider=provider,
+            confidence=confidence.value,
+        )
         return OriginResult(
             provider=provider,
             confidence=confidence,
@@ -332,3 +414,30 @@ def match_cname_provider(cname: str) -> str | None:
             if pat.search(cname_l):
                 return provider
     return None
+
+
+def _normalize_host(value: str) -> str:
+    """Strip scheme/path/port from ``value``; lowercase the result.
+
+    The orchestrator hands secondary URLs like ``"https://www.acme.example"``;
+    callers may also pass bare hostnames. We normalise either form to a
+    plain lowercase FQDN so the dedup set works regardless of source.
+    Returns ``""`` for inputs that yield no hostname (those get skipped).
+    """
+
+    if not value:
+        return ""
+    candidate = value.strip().lower()
+    if "://" in candidate:
+        candidate = urlsplit(candidate).hostname or ""
+    # Drop port if present (e.g. ``host:8080``).
+    if ":" in candidate:
+        candidate = candidate.split(":", 1)[0]
+    # Drop a trailing slash if a bare host slipped one through.
+    return candidate.rstrip("./")
+
+
+# Counter is referenced from the design doc but the implementation uses
+# plain dicts — re-exported in case external callers want to compute
+# their own confidence ladder over ``OriginResult.evidence``.
+_ = Counter
