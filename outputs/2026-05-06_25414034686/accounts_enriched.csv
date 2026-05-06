@@ -1,0 +1,3 @@
+Title,Country,PublicCloud,Complexity,HasAWS,HasAzure,HasGCP,HasOCI,PrimaryHyperScaler,Website01,Website02,Website03,Website04,Website05,WAF,WAFVendor,WAFTool,CMSFramework,WebServer,CDN,RiskScore,RecommendsFortiAppSec,RecommendsFortiWeb,RecommendsFortiCNAPP,OpportunityRationale,ScannedAt
+Banco de Crédito BCP,Perú,Further investigation needed,-,No,No,No,No,-,https://viabcp.com,-,-,-,-,No,-,,-,-,-,LOW (0/15),No,Yes,No,Infra fuera de cloud público sin WAF → FortiWeb VM/Appliance.,2026-05-06T03:00:59Z
+Falabella Chile,Chile,Further investigation needed,-,No,No,No,No,-,https://falabella.com,-,-,-,-,No,-,,-,-,-,LOW (0/15),No,Yes,No,Infra fuera de cloud público sin WAF → FortiWeb VM/Appliance.,2026-05-06T03:00:59Z
