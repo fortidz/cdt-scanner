@@ -91,6 +91,7 @@ jobs:
             scan --in /app/in/accounts_in.csv \
                  --tier "${{ inputs.tier }}" \
                  --country "${{ inputs.country_filter }}" \
+                 --cache-dir /app/cache \
                  --out /app/out/
 
       # =========================================================================
@@ -212,6 +213,7 @@ jobs:
                scan --in /app/in/accounts_in.csv \
                     --tier '${{ inputs.tier }}' \
                     --country '${{ inputs.country_filter }}' \
+                    --cache-dir /app/cache \
                     --out /app/out/"
 
           # Pull outputs back.
