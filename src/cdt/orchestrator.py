@@ -336,7 +336,11 @@ class Orchestrator:
             secondary_sites.append(secondary_data["site"])
 
         # 5. Detection on the primary.
-        detection_input = _build_detection_input(canonical_url, primary_data)
+        # ``secondaries`` are URLs (https://host); the detect engine wants
+        # bare hostnames for origin-probe lookups (Fase 9 #1.1).
+        detection_input = _build_detection_input(
+            canonical_url, primary_data, expanded_subdomains=secondaries
+        )
         waf = self._c.waf_detector.detect(detection_input)
         cdn = self._c.cdn_detector.detect(detection_input, waf_detection=waf)
         cloud = await self._c.cloud_attributor.attribute(detection_input)
@@ -649,7 +653,12 @@ def _issue_from_validation(
 # ---------------------------------------------------------------------------
 
 
-def _build_detection_input(canonical_url: str | None, scan: dict) -> DetectionInput:  # type: ignore[type-arg]
+def _build_detection_input(
+    canonical_url: str | None,
+    scan: dict,  # type: ignore[type-arg]
+    *,
+    expanded_subdomains: list[str] | None = None,
+) -> DetectionInput:
     url = canonical_url or scan.get("url", "")
     return DetectionInput(
         url=url,
@@ -662,6 +671,7 @@ def _build_detection_input(canonical_url: str | None, scan: dict) -> DetectionIn
         asn=scan.get("asn"),
         asn_org=scan.get("asn_org"),
         rdns_hostnames=list(scan.get("rdns_hostnames", [])),
+        expanded_subdomains=list(expanded_subdomains or []),
         wafw00f_vendor=scan.get("wafw00f_vendor"),
         wafw00f_generic=scan.get("wafw00f_generic", False),
         whatweb_plugins=dict(scan.get("whatweb_plugins", {})),

@@ -1,0 +1,29 @@
+{
+  "_comment": "Realistic shape of expander-discovered subdomains for a Cloudflare-fronted account where the origin actually lives in AWS. Modelled on BCP smoke 25415496527.",
+  "apex": "viabcp.example",
+  "edge_asn": 13335,
+  "expanded_subdomains": [
+    "https://openbanking.viabcp.example",
+    "https://loginunico.viabcp.example",
+    "https://mispendientes.viabcp.example",
+    "https://miscitasvirtuales.viabcp.example",
+    "https://encuestasbcp.viabcp.example",
+    "https://smetrics.viabcp.example"
+  ],
+  "a_records": {
+    "openbanking.viabcp.example": ["54.239.28.85"],
+    "loginunico.viabcp.example": ["54.239.28.86"],
+    "mispendientes.viabcp.example": ["104.16.0.1"],
+    "miscitasvirtuales.viabcp.example": ["104.16.0.2"],
+    "encuestasbcp.viabcp.example": ["104.16.0.3"],
+    "smetrics.viabcp.example": ["104.16.0.4"]
+  },
+  "ip_to_provider": {
+    "54.239.28.85": "AWS",
+    "54.239.28.86": "AWS",
+    "104.16.0.1": "Cloudflare",
+    "104.16.0.2": "Cloudflare",
+    "104.16.0.3": "Cloudflare",
+    "104.16.0.4": "Cloudflare"
+  }
+}

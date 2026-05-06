@@ -117,6 +117,10 @@ class DetectionInput(BaseModel):
     asn: int | None = None
     asn_org: str | None = None
     rdns_hostnames: list[str] = Field(default_factory=list)
+    # Subdomains discovered by the crt.sh expander (Phase 2). Used by
+    # ``OriginAttributor`` to widen the origin probe beyond the hardcoded
+    # generic catalogue (Fase 9 #1.1).
+    expanded_subdomains: list[str] = Field(default_factory=list)
 
     # External tool corroborations (Fase 4 wrappers).
     wafw00f_vendor: str | None = None

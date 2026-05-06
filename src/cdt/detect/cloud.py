@@ -83,6 +83,7 @@ class CloudAttributor:
                         apex,
                         primary_asn=ctx.asn,
                         primary_cnames=list(ctx.cnames),
+                        expanded_subdomains=list(ctx.expanded_subdomains),
                     )
                 except Exception as exc:  # noqa: BLE001 — best-effort
                     log.warning(
