@@ -1,0 +1,4 @@
+Title,Country,SiteURL,FindingCode,Severity,Message,Evidence
+Banco de Crédito BCP,Perú,https://viabcp.com,MISSING_HSTS,Medium,Strict-Transport-Security header missing.,
+Banco de Crédito BCP,Perú,https://viabcp.com,MISSING_CSP,Medium,Content-Security-Policy header missing.,
+Falabella Chile,Chile,https://falabella.com,MISSING_CSP,Medium,Content-Security-Policy header missing.,
