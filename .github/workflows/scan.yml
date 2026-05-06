@@ -79,6 +79,7 @@ jobs:
           mkdir -p ./out ./cache
           docker run --rm \
             -v "$PWD/in:/app/in:ro" \
+            -v "$PWD/config:/app/config:ro" \
             -v "$PWD/out:/app/out" \
             -v "$PWD/cache:/app/cache" \
             -e BRAVE_SEARCH_API_KEY \
@@ -187,10 +188,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Push inputs to VM. ``-o BatchMode=yes`` avoids password prompts if
-          # the key is somehow unloaded between steps.
+          # Push inputs + config to VM. ``-o BatchMode=yes`` avoids password
+          # prompts if the key is somehow unloaded between steps.
           scp -o BatchMode=yes -o ConnectTimeout=10 \
-              -r ./in cdt@"$PUBLIC_IP":/app/
+              -r ./in ./config cdt@"$PUBLIC_IP":/app/
 
           # Run scan via docker on the VM.
           # BRAVE_SEARCH_API_KEY is passed as `-e VAR` (no `=value`) so docker
