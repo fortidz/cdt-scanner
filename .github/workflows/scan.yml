@@ -66,7 +66,7 @@ jobs:
 
       - name: '[DEV] Pull image'
         if: ${{ inputs.phase == 'dev' }}
-        run: docker pull ghcr.io/fortidz/cdt-scanner:dev
+        run: docker pull ghcr.io/fortidz/cdt:dev
 
       - name: '[DEV] Run scan'
         if: ${{ inputs.phase == 'dev' }}
@@ -87,7 +87,7 @@ jobs:
             -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
             --user 1000:1000 \
             --read-only --tmpfs /tmp \
-            ghcr.io/fortidz/cdt-scanner:dev \
+            ghcr.io/fortidz/cdt:dev \
             scan --in /app/in/accounts_in.csv \
                  --tier "${{ inputs.tier }}" \
                  --country "${{ inputs.country_filter }}" \
@@ -122,7 +122,7 @@ jobs:
           TF_VAR_run_id: ${{ github.run_id }}
           TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
           TF_VAR_ssh_pubkey: ${{ secrets.EPHEMERAL_SSH_PUBKEY }}
-          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt-scanner:latest'
+          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt:latest'
         run: |
           set -euo pipefail
           terraform init
@@ -208,7 +208,7 @@ jobs:
                -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
                --user 1000:1000 \
                --read-only --tmpfs /tmp \
-               ghcr.io/fortidz/cdt-scanner:latest \
+               ghcr.io/fortidz/cdt:latest \
                scan --in /app/in/accounts_in.csv \
                     --tier '${{ inputs.tier }}' \
                     --country '${{ inputs.country_filter }}' \
@@ -238,7 +238,7 @@ jobs:
           TF_VAR_run_id: ${{ github.run_id }}
           TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
           TF_VAR_ssh_pubkey: ${{ secrets.EPHEMERAL_SSH_PUBKEY }}
-          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt-scanner:latest'
+          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt:latest'
         run: terraform destroy -auto-approve
 
       # =========================================================================
