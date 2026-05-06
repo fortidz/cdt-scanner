@@ -1,0 +1,9 @@
+Title,Country,SiteURL,IsPrimary,Alive,StatusCode,IP,ASN,ASNOrg,CloudProvider,CDN,WAFDetected,WAFVendor,WAFTool,CMSFramework,WebServer,TLSVersion,CertIssuer,CertExpiresAt,HSTS,CSP,XFO,XCTO,ReferrerPolicy,PermissionsPolicy,ScanTier,ScannedAt,OriginCloudProvider
+Banco de Crédito BCP,Perú,https://viabcp.com,1,0,,104.20.52.240,13335,"CLOUDFLARENET - Cloudflare, Inc., US",Cloudflare,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:01:55Z,-
+Banco de Crédito BCP,Perú,https://www.viabcp.com,0,0,,104.20.53.240,13335,"CLOUDFLARENET - Cloudflare, Inc., US",-,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:02:17Z,-
+Banco de Crédito BCP,Perú,https://authserver.viabcp.com,0,0,,104.20.52.240,13335,"CLOUDFLARENET - Cloudflare, Inc., US",-,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:02:17Z,-
+Falabella Chile,Chile,https://falabella.com,1,0,,104.18.128.133,13335,"CLOUDFLARENET - Cloudflare, Inc., US",Cloudflare,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:01:55Z,-
+Falabella Chile,Chile,https://www.falabella.com,0,0,,104.16.239.153,13335,"CLOUDFLARENET - Cloudflare, Inc., US",-,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:02:10Z,-
+Falabella Chile,Chile,https://tienda.falabella.com,0,0,,104.18.128.133,13335,"CLOUDFLARENET - Cloudflare, Inc., US",-,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:02:11Z,-
+Falabella Chile,Chile,https://secure.falabella.com,0,0,,104.16.239.153,13335,"CLOUDFLARENET - Cloudflare, Inc., US",-,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:02:12Z,-
+Falabella Chile,Chile,https://confluence.falabella.com,0,0,,104.18.128.133,13335,"CLOUDFLARENET - Cloudflare, Inc., US",-,-,0,-,,-,-,-,,,0,0,0,0,0,0,passive,2026-05-06T14:02:12Z,-
