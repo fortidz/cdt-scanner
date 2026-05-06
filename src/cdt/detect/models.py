@@ -65,11 +65,29 @@ class CloudDetection(BaseModel):
     confidence: Confidence = Confidence.LOW
     source: str = "unknown"  # ip_range | rdns | cname | asn | banner | datacenter | unknown
     signals_matched: list[SignalMatch] = Field(default_factory=list)
-    origin: str | None = None  # if edge != origin (Phase 6 may re-resolve)
+    # Origin behind edge — populated by ``OriginAttributor`` (Fase 9 #1)
+    # when ``role == "edge_only"`` (Cloudflare/Fastly/Akamai/etc.) and a
+    # subdomain probe or CNAME chain reveals an underlying hyperscaler.
+    origin: str | None = None
+    origin_confidence: Confidence = Confidence.LOW
+    origin_source: str | None = None  # subdomain_probe | cname_chain | exhausted | not_edge
     role: str = "hyperscaler"  # hyperscaler | edge_only | datacenter
     asn_org: str | None = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
+
+    def effective_provider(self) -> str | None:
+        """Origin if known, else the primary provider.
+
+        Used downstream when computing ``has_aws/azure/gcp/oci`` and
+        ``PrimaryHyperScaler`` so the cloud columns reflect what is
+        actually hosting the application, not the edge in front of it.
+
+        Method (not ``@property``) because pydantic v2 + mypy strict
+        do not always infer property attributes through ``BaseModel``.
+        """
+
+        return self.origin or self.provider
 
 
 class StackDetection(BaseModel):
