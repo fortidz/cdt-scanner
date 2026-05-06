@@ -321,7 +321,17 @@ def _build_components(  # noqa: PLR0913, PLR0915 — wiring is one big function
     detection_rules = DetectionRules.load(rules_path)
     waf_detector = WafDetector(detection_rules)
     cdn_detector = CdnDetector(detection_rules)
-    cloud_attributor = CloudAttributor(detection_rules, ip_ranges_index=ip_ranges)
+    # Origin probe is skipped in --no-network smoke (no DNS attempted).
+    origin_attributor = None
+    if not no_network:
+        from cdt.detect.origin import OriginAttributor
+
+        origin_attributor = OriginAttributor(ip_range_lookup=ip_ranges)
+    cloud_attributor = CloudAttributor(
+        detection_rules,
+        ip_ranges_index=ip_ranges,
+        origin_attributor=origin_attributor,
+    )
     stack_detector = StackDetector(detection_rules)
 
     rationale_path = Path(config.detection.rationale_templates_file)

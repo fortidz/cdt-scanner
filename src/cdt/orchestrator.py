@@ -357,10 +357,13 @@ class Orchestrator:
             headers=primary_data["headers"],
             tls=primary_data.get("tls"),
             secondary_sites_protected=secondary_protected,
-            has_aws=cloud.provider == "AWS",
-            has_azure=cloud.provider == "Azure",
-            has_gcp=cloud.provider == "GCP",
-            has_oci=cloud.provider == "OCI",
+            # Use origin (behind-edge cloud) when available, else the primary
+            # provider. ``effective_provider`` is None when the primary is
+            # unknown / datacenter — Has* stays False.
+            has_aws=cloud.effective_provider() == "AWS",
+            has_azure=cloud.effective_provider() == "Azure",
+            has_gcp=cloud.effective_provider() == "GCP",
+            has_oci=cloud.effective_provider() == "OCI",
         )
         scoring_result = self._c.scoring_engine.evaluate(scoring_input)
 
@@ -692,6 +695,7 @@ def _build_primary_site(
         asn=scan.get("asn"),
         asn_org=scan.get("asn_org") or "",
         cloud_provider=getattr(cloud, "provider", None) or "-",
+        origin_cloud_provider=getattr(cloud, "origin", None) or "-",
         cdn=getattr(cdn, "vendor", None) or "-",
         waf_detected=bool(getattr(waf, "vendor", None)),
         waf_vendor=getattr(waf, "vendor", None) or "-",
