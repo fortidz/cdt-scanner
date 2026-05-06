@@ -312,7 +312,14 @@ class Orchestrator:
 
         # 3. Expand secondaries via crt.sh.
         secondaries: list[str] = []
-        if not options.skip_expansion and canonical_url:
+        # Offline mode skips expansion entirely so the new DNS bruteforce
+        # fallback (Fase 9 #1.2) doesn't leak real DNS queries during
+        # ``--no-network`` smoke tests.
+        if (
+            not options.skip_expansion
+            and canonical_url
+            and not options.no_network
+        ):
             secondaries = await self._expand(canonical_url, options)
 
         # 4. Per-site scanning.
