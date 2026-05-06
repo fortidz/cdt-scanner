@@ -88,9 +88,24 @@ class RiskScore(BaseModel):
 
 
 class OpportunityFlags(BaseModel):
-    appsec: bool = False
-    web: bool = False
-    cnapp: bool = False
+    """Three Fortinet recommendations.
+
+    Tri-state per field:
+      - ``True``  → recommend  ("Yes" in CSV)
+      - ``False`` → don't      ("No" in CSV)
+      - ``None``  → insufficient data ("-" in CSV)
+
+    ``None`` is reserved for the **passive tier** (Fase 9 #2): a passive
+    scan never runs ``wafw00f`` / browser fetch / stack detection, so the
+    decision tree has no signal to evaluate. Emitting "Yes"/"No" anyway
+    would print confidently wrong recommendations (smoke run 25415496527
+    misclassified Cloudflare-fronted BCP/Falabella as "RecommendsFortiWeb=Yes"
+    because the WAF column was empty).
+    """
+
+    appsec: bool | None = False
+    web: bool | None = False
+    cnapp: bool | None = False
 
     model_config = ConfigDict(str_strip_whitespace=True)
 

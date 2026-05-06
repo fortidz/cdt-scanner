@@ -41,6 +41,18 @@ class OpportunityCalculator:
     def calculate(
         self, scoring_input: ScoringInput, risk: RiskScore
     ) -> OpportunityFlags:
+        # Passive tier never runs wafw00f / browser fetch / stack detection
+        # (Fase 9 #2). Without those signals the decision tree of v0.4 §7.3
+        # is operating on absent data — emitting Yes/No would mislead.
+        # Return tri-state ``None`` so downstream renders as "-".
+        if scoring_input.tier == "passive":
+            log.info(
+                "opportunity_skipped_passive",
+                url=scoring_input.url,
+                reason="tier=passive lacks WAF/stack signals",
+            )
+            return OpportunityFlags(appsec=None, web=None, cnapp=None)
+
         waf_decision = compute_waf_decision(scoring_input.waf)
         public_cloud = compute_public_cloud(scoring_input.cloud)
         complexity = compute_complexity(

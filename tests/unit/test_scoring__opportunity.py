@@ -31,12 +31,13 @@ def _input(
     has_azure: bool = False,
     has_gcp: bool = False,
     has_oci: bool = False,
+    tier: str = "browser",
 ) -> ScoringInput:
     return ScoringInput(
         url="https://acme.example/",
         title="Acme",
         country="Ecuador",
-        tier="browser",
+        tier=tier,
         waf=waf or WafDetection(),
         cdn=CdnDetection(),
         cloud=cloud or CloudDetection(),
@@ -246,3 +247,72 @@ def test_opp__public_cloud_low_unknown_returns_no() -> None:
 
     cloud = CloudDetection()
     assert compute_public_cloud(cloud) == "No"
+
+
+# ---------------------------------------------------------------------------
+# Fase 9 #2: passive tier conservatism
+# ---------------------------------------------------------------------------
+
+
+def test_opp__passive_tier_returns_none_for_recommends(
+    calculator: OpportunityCalculator,
+) -> None:
+    """tier=passive: all Recommends* = None, never Yes/No.
+
+    Rationale: passive scan never runs wafw00f / browser fetch / stack
+    detection. The decision tree of v0.4 §7.3 has no signal to evaluate.
+    """
+
+    flags = calculator.calculate(_input(tier="passive"), _risk())
+    assert flags.appsec is None
+    assert flags.web is None
+    assert flags.cnapp is None
+
+
+def test_opp__browser_tier_unchanged_after_passive_fix(
+    calculator: OpportunityCalculator,
+) -> None:
+    """tier=browser: decision tree still runs (no regression from PR)."""
+
+    flags = calculator.calculate(
+        _input(tier="browser", waf=WafDetection(confidence=Confidence.LOW)),
+        _risk(),
+    )
+    assert flags.appsec is False
+    assert flags.web is True   # default branch: no WAF + no cloud → Web
+    assert flags.cnapp is False
+
+
+def test_opp__passive_with_cloudflare_does_not_recommend_fortiweb(
+    calculator: OpportunityCalculator,
+) -> None:
+    """Regression for smoke run 25415496527 (2026-05-06):
+    passive + Cloudflare-edge cloud + empty WAF data was producing
+    RecommendsFortiWeb=Yes. Now it returns None (renders as "-")."""
+
+    cloudflare_edge = CloudDetection(
+        provider="Cloudflare",
+        confidence=Confidence.HIGH,
+        role="edge_only",
+    )
+    no_waf_signal = WafDetection(confidence=Confidence.LOW, vendor=None)
+
+    flags = calculator.calculate(
+        _input(tier="passive", waf=no_waf_signal, cloud=cloudflare_edge),
+        _risk(),
+    )
+    assert flags.web is None
+    assert flags.appsec is None
+    assert flags.cnapp is None
+
+
+def test_opp__dast_tier_runs_decision_tree(
+    calculator: OpportunityCalculator,
+) -> None:
+    """tier=dast also runs the decision tree (passive is the only opt-out)."""
+
+    flags = calculator.calculate(_input(tier="dast"), _risk())
+    # Default branch: no WAF detected + no cloud → Web=Yes.
+    assert flags.appsec is False
+    assert flags.web is True
+    assert flags.cnapp is False
