@@ -273,9 +273,9 @@ def _enriched_row(
         "WebServer": _dash_if_empty(meta.web_server),
         "CDN": _dash_if_empty(meta.cdn),
         "RiskScore": result.risk.display,
-        "RecommendsFortiAppSec": _yes_no(result.opportunity.appsec),
-        "RecommendsFortiWeb": _yes_no(result.opportunity.web),
-        "RecommendsFortiCNAPP": _yes_no(result.opportunity.cnapp),
+        "RecommendsFortiAppSec": _render_recommend(result.opportunity.appsec),
+        "RecommendsFortiWeb": _render_recommend(result.opportunity.web),
+        "RecommendsFortiCNAPP": _render_recommend(result.opportunity.cnapp),
         "OpportunityRationale": _truncate(result.rationale, _RATIONALE_MAX),
         "ScannedAt": _iso_z(meta.scanned_at),
     }
@@ -348,6 +348,20 @@ def _issue_row(issue: ValidationIssue) -> dict[str, str]:
 
 
 def _yes_no(value: bool) -> str:
+    return "Yes" if value else "No"
+
+
+def _render_recommend(value: bool | None) -> str:
+    """Tri-state rendering for RecommendsForti{AppSec,Web,CNAPP} columns.
+
+    ``None`` is the sentinel for "insufficient data" emitted by the
+    opportunity calculator when ``tier=passive`` (Fase 9 #2). Distinct
+    from ``False`` ("No") so operators can tell "we looked and the
+    answer is no" apart from "we didn't have enough signal to decide".
+    """
+
+    if value is None:
+        return "-"
     return "Yes" if value else "No"
 
 
