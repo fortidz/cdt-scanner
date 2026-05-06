@@ -1,11 +1,13 @@
-"""Tests for the crt.sh-based Expander."""
+"""Tests for the crt.sh-based Expander + DNS bruteforce fallback (Fase 9 #1.2)."""
 
 from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
+import dns.resolver
 import httpx
 import pytest
 import respx
@@ -14,6 +16,9 @@ from cdt.discovery import DiscoveryCache, Expander, ExpansionResult
 from cdt.discovery.expander import ExpanderConfig
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "crt_sh"
+BRUTEFORCE_TEST_LIST = (
+    Path(__file__).parent.parent / "fixtures" / "subdomain_bruteforce_test.txt"
+)
 CRT_SH_URL = "https://crt.sh/"
 
 
@@ -178,3 +183,296 @@ async def test_expand__dead_subdomains_dropped(cache: DiscoveryCache) -> None:
 
     assert "www.acme.test" in result.websites
     assert "ghost.acme.test" not in result.websites
+
+
+# ===========================================================================
+# Fase 9 #1.2 — DNS bruteforce fallback when crt.sh is down or thin
+# ===========================================================================
+
+
+def _bruteforce_resolver(alive_hosts: set[str]) -> AsyncMock:
+    """Build an AsyncMock resolver where ``alive_hosts`` get an A record
+    and everything else raises ``NXDOMAIN``."""
+
+    async def _resolve(name: object, rrtype: str) -> object:
+        host = str(name).rstrip(".").lower()
+        if rrtype != "A":
+            raise dns.resolver.NoAnswer()
+        if host in alive_hosts:
+            return [MagicMock(address="1.2.3.4")]
+        raise dns.resolver.NXDOMAIN()
+
+    resolver = AsyncMock()
+    resolver.resolve = AsyncMock(side_effect=_resolve)
+    return resolver
+
+
+def _bruteforce_config() -> ExpanderConfig:
+    return ExpanderConfig(
+        bruteforce_list_path=BRUTEFORCE_TEST_LIST,
+        bruteforce_concurrency=20,
+        crt_sh_min_results=5,
+        enable_bruteforce_fallback=True,
+        liveness_timeout_sec=0.5,
+    )
+
+
+@respx.mock
+async def test_expand__falls_back_to_bruteforce_when_crt_sh_502(
+    cache: DiscoveryCache,
+) -> None:
+    """crt.sh 502 -> ``_CrtShFailed`` -> bruteforce activates and returns alive subs."""
+
+    respx.get(CRT_SH_URL).mock(return_value=httpx.Response(502, text="Bad Gateway"))
+
+    alive = {"openbanking.bcp.example", "loginunico.bcp.example"}
+    resolver = _bruteforce_resolver(alive)
+    config = _bruteforce_config()
+
+    e = Expander(cache=cache, config=config, resolver=resolver)
+    try:
+        # All HEAD probes for alive hosts should pass.
+        for host in alive:
+            _mock_alive(host)
+        result = await e.expand("bcp.example", max_sites=5)
+    finally:
+        await e.aclose()
+
+    assert isinstance(result, ExpansionResult)
+    assert result.source == "bruteforce"
+    assert "openbanking.bcp.example" in result.websites
+    assert "loginunico.bcp.example" in result.websites
+
+
+@respx.mock
+async def test_expand__falls_back_when_crt_sh_returns_empty(
+    cache: DiscoveryCache,
+) -> None:
+    """crt.sh 200 [] -> bruteforce activates."""
+
+    respx.get(CRT_SH_URL).mock(return_value=httpx.Response(200, json=[]))
+
+    alive = {"www.bcp.example"}
+    resolver = _bruteforce_resolver(alive)
+    config = _bruteforce_config()
+
+    e = Expander(cache=cache, config=config, resolver=resolver)
+    try:
+        _mock_alive("www.bcp.example")
+        result = await e.expand("bcp.example", max_sites=5)
+    finally:
+        await e.aclose()
+
+    assert result.source == "bruteforce"
+    assert "www.bcp.example" in result.websites
+
+
+@respx.mock
+async def test_expand__falls_back_when_crt_sh_returns_few_results(
+    cache: DiscoveryCache,
+) -> None:
+    """crt.sh returns 2 (below crt_sh_min_results=5) -> merge with bruteforce."""
+
+    respx.get(CRT_SH_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {"common_name": "www.bcp.example", "name_value": "www.bcp.example"},
+                {"common_name": "api.bcp.example", "name_value": "api.bcp.example"},
+            ],
+        )
+    )
+
+    # Bruteforce surfaces a hostname crt.sh missed.
+    alive = {
+        "www.bcp.example",  # also from crt.sh — must dedup
+        "api.bcp.example",  # ditto
+        "openbanking.bcp.example",  # only from bruteforce
+        "zonasegura.bcp.example",   # only from bruteforce
+    }
+    resolver = _bruteforce_resolver(alive)
+    config = _bruteforce_config()
+
+    e = Expander(cache=cache, config=config, resolver=resolver)
+    try:
+        for host in alive:
+            _mock_alive(host)
+        result = await e.expand("bcp.example", max_sites=10)
+    finally:
+        await e.aclose()
+
+    assert result.source == "merged"
+    # Bruteforce-only hostnames present.
+    assert "openbanking.bcp.example" in result.websites
+    assert "zonasegura.bcp.example" in result.websites
+
+
+@respx.mock
+async def test_expand__no_fallback_when_crt_sh_succeeds(
+    cache: DiscoveryCache,
+) -> None:
+    """crt.sh returns >= crt_sh_min_results -> bruteforce skipped, resolver untouched."""
+
+    respx.get(CRT_SH_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {"common_name": f"sub{i}.bcp.example",
+                 "name_value": f"sub{i}.bcp.example"}
+                for i in range(6)
+            ],
+        )
+    )
+
+    resolver = AsyncMock()
+    resolver.resolve = AsyncMock(side_effect=AssertionError("DNS must not be touched"))
+    config = _bruteforce_config()
+
+    e = Expander(cache=cache, config=config, resolver=resolver)
+    try:
+        for i in range(6):
+            _mock_alive(f"sub{i}.bcp.example")
+        result = await e.expand("bcp.example", max_sites=10)
+    finally:
+        await e.aclose()
+
+    assert result.source == "crt_sh"
+    resolver.resolve.assert_not_called()
+
+
+@respx.mock
+async def test_expand__bruteforce_filters_dead_subdomains(
+    cache: DiscoveryCache,
+) -> None:
+    """Bruteforce list has names that resolve; HEAD probe drops dead hosts."""
+
+    respx.get(CRT_SH_URL).mock(side_effect=httpx.ConnectError("crt down"))
+
+    alive_dns = {"www.bcp.example", "api.bcp.example", "admin.bcp.example"}
+    resolver = _bruteforce_resolver(alive_dns)
+    config = _bruteforce_config()
+
+    e = Expander(cache=cache, config=config, resolver=resolver)
+    try:
+        # Only www and api are HTTP-alive; admin returns connect error.
+        _mock_alive("www.bcp.example")
+        _mock_alive("api.bcp.example")
+        _mock_dead("admin.bcp.example")
+        result = await e.expand("bcp.example", max_sites=5)
+    finally:
+        await e.aclose()
+
+    assert result.source == "bruteforce"
+    assert "www.bcp.example" in result.websites
+    assert "api.bcp.example" in result.websites
+    assert "admin.bcp.example" not in result.websites
+
+
+@respx.mock
+async def test_expand__bruteforce_concurrent_with_semaphore(
+    cache: DiscoveryCache,
+) -> None:
+    """Concurrency cap is enforced — peak in-flight resolver calls <= bruteforce_concurrency."""
+
+    respx.get(CRT_SH_URL).mock(side_effect=httpx.ConnectError("crt down"))
+
+    in_flight = 0
+    peak = 0
+    import asyncio as _asyncio
+
+    async def _resolve(name: object, rrtype: str) -> object:
+        nonlocal in_flight, peak
+        in_flight += 1
+        peak = max(peak, in_flight)
+        try:
+            await _asyncio.sleep(0.01)
+            return [MagicMock(address="1.2.3.4")]
+        finally:
+            in_flight -= 1
+
+    resolver = AsyncMock()
+    resolver.resolve = AsyncMock(side_effect=_resolve)
+
+    config = ExpanderConfig(
+        bruteforce_list_path=BRUTEFORCE_TEST_LIST,
+        bruteforce_concurrency=3,  # tight cap to make the assertion meaningful
+        crt_sh_min_results=5,
+        enable_bruteforce_fallback=True,
+        liveness_timeout_sec=0.5,
+    )
+
+    # Catch every HEAD against *.bcp.example so the post-bruteforce
+    # liveness probe doesn't blow up on missing respx routes; the
+    # assertion in this test is only about the resolver concurrency.
+    respx.head(url__regex=r"https://.+\.bcp\.example/?$").mock(
+        return_value=httpx.Response(200)
+    )
+
+    e = Expander(cache=cache, config=config, resolver=resolver)
+    try:
+        await e.expand("bcp.example", max_sites=5)
+    finally:
+        await e.aclose()
+
+    assert peak <= 3, f"peak concurrent = {peak}, expected <= 3"
+
+
+@respx.mock
+async def test_expand__source_in_result_reflects_path_taken(
+    cache: DiscoveryCache,
+) -> None:
+    """``ExpansionResult.source`` ∈ {crt_sh, bruteforce, merged, cache}."""
+
+    # Run 1: crt.sh succeeds -> source=crt_sh
+    respx.get(CRT_SH_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {"common_name": f"sub{i}.bcp.example",
+                 "name_value": f"sub{i}.bcp.example"}
+                for i in range(6)
+            ],
+        )
+    )
+    config = _bruteforce_config()
+    e = Expander(cache=cache, config=config)
+    try:
+        for i in range(6):
+            _mock_alive(f"sub{i}.bcp.example")
+        first = await e.expand("bcp.example", max_sites=10)
+    finally:
+        await e.aclose()
+    assert first.source == "crt_sh"
+
+    # Run 2 (cache hot): same apex -> source=cache
+    e2 = Expander(cache=cache, config=config)
+    try:
+        second = await e2.expand("bcp.example", max_sites=10)
+    finally:
+        await e2.aclose()
+    assert second.source == "cache"
+
+
+async def test_expand__bruteforce_disabled_skips_fallback(
+    cache: DiscoveryCache,
+) -> None:
+    """``enable_bruteforce_fallback=False`` -> no DNS calls even when crt.sh empty."""
+
+    config = ExpanderConfig(
+        bruteforce_list_path=BRUTEFORCE_TEST_LIST,
+        enable_bruteforce_fallback=False,
+        liveness_timeout_sec=0.5,
+    )
+    resolver = AsyncMock()
+    resolver.resolve = AsyncMock(side_effect=AssertionError("Resolver must not be touched"))
+
+    e = Expander(cache=cache, config=config, resolver=resolver)
+    try:
+        with respx.mock:
+            respx.get(CRT_SH_URL).mock(side_effect=httpx.ConnectError("crt down"))
+            result = await e.expand("bcp.example", max_sites=5)
+    finally:
+        await e.aclose()
+
+    assert result.websites == []
+    resolver.resolve.assert_not_called()
