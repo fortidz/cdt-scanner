@@ -64,10 +64,23 @@ class DiscoveryResult(BaseModel):
 
 
 class ExpansionResult(BaseModel):
-    """Output of ``Expander.expand`` — websites discovered via crt.sh (v0.4 §4.3)."""
+    """Output of ``Expander.expand`` — websites discovered via crt.sh or
+    DNS bruteforce fallback (v0.4 §4.3 + Fase 9 #1.2 resilience).
+
+    ``source`` records which strategy produced the result so downstream
+    consumers can adjust trust:
+      - ``crt_sh``     — Certificate Transparency (authoritative).
+      - ``bruteforce`` — DNS A-record probe over a static name list,
+                         used when crt.sh is down or returns nothing.
+      - ``merged``     — Both strategies ran and the winning set is
+                         the union (crt.sh thin, bruteforce filled in).
+      - ``cache``      — Hot from ``DiscoveryCache``; original source
+                         lives in the cached payload.
+    """
 
     apex: str
     websites: list[str] = Field(default_factory=list)
     total_subdomains_seen: int = 0
+    source: str = "crt_sh"
 
     model_config = ConfigDict(str_strip_whitespace=True)

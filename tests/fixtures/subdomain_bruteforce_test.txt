@@ -1,0 +1,16 @@
+# Short bruteforce list used by tests; mirrors the real one but
+# trimmed to ~12 names so individual tests don't need to mock 240
+# DNS lookups.
+
+www
+api
+admin
+panel
+login
+auth
+authserver
+openbanking
+zonasegura
+mispendientes
+loginunico
+nonexistent-host

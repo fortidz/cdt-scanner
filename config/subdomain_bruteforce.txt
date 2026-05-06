@@ -1,0 +1,284 @@
+# DNS bruteforce candidates used by the Expander when crt.sh is
+# unavailable or returns thin results (Fase 9 #1.2).
+#
+# Format: one lowercase subdomain prefix per line. Lines starting with
+# `#` and blank lines are ignored. The expander prepends each name to
+# the apex (e.g. `www` + `acme.com` -> `www.acme.com`) before A-record
+# probing.
+#
+# Sourced from a curated mix of:
+#   - Top-N common subdomains (web/admin/auth/api surface).
+#   - DevOps + observability (grafana, prometheus, jenkins, ...).
+#   - LATAM banking + retail patterns observed in operator scans
+#     (openbanking, zonasegura, abretucuenta, sucursales, ...).
+#
+# Hard cap on apex query budget: 250 names. If you grow this list past
+# that, also bump _MAX_BRUTEFORCE_CANDIDATES in expander.py.
+
+# --- web surface (most common origins) ---
+www
+www2
+www3
+m
+mobile
+web
+secure
+ssl
+portal
+panel
+dashboard
+
+# --- mail / messaging (kept for completeness; expander still filters) ---
+mail
+webmail
+imap
+smtp
+pop
+pop3
+exchange
+owa
+autodiscover
+
+# --- file / asset transfer ---
+ftp
+sftp
+files
+download
+downloads
+upload
+uploads
+docs
+assets
+media
+img
+images
+static
+cdn
+
+# --- API / backend ---
+api
+api1
+api2
+api-prod
+api-staging
+v1
+v2
+graphql
+rest
+backend
+srv
+server
+services
+service
+endpoint
+gateway
+gw
+internal
+intranet
+extranet
+edge
+origin
+direct
+public
+private
+
+# --- auth / identity ---
+auth
+authserver
+sso
+oauth
+openid
+login
+logon
+signin
+signup
+account
+accounts
+identity
+idp
+ldap
+
+# --- admin / operations ---
+admin
+adm
+administrator
+manager
+management
+control
+console
+
+# --- DevOps + monitoring ---
+git
+gitlab
+github
+jenkins
+ci
+cd
+build
+artifactory
+nexus
+docker
+registry
+helm
+k8s
+grafana
+prometheus
+kibana
+metrics
+logs
+logging
+status
+health
+monitor
+monitoring
+alerts
+zabbix
+nagios
+
+# --- DBs / infra (sometimes left exposed) ---
+db
+mysql
+postgres
+mongo
+redis
+elastic
+elasticsearch
+
+# --- environments ---
+dev
+develop
+development
+test
+testing
+qa
+uat
+stage
+staging
+preprod
+preproduction
+prod
+production
+beta
+alpha
+canary
+demo
+sandbox
+
+# --- VPN / remote ---
+vpn
+remote
+ssh
+shell
+desktop
+rdp
+citrix
+ws
+ws1
+ws2
+hub
+
+# --- ticketing / CRM / collaboration ---
+support
+help
+helpdesk
+tickets
+crm
+hr
+careers
+jobs
+intranet
+wiki
+confluence
+jira
+
+# --- CMS / blog / marketing ---
+blog
+news
+press
+events
+shop
+store
+tienda
+ecommerce
+checkout
+cart
+pay
+payments
+pago
+pagos
+
+# --- banking / fintech (LATAM-flavoured) ---
+banca
+bancamovil
+bancaweb
+bancalinea
+bancatelefonica
+zonasegura
+zona-segura
+seguro
+seguros
+seguridad
+abretucuenta
+solicitud
+solicitudes
+apertura
+contrata
+contratacion
+pyme
+pymes
+empresa
+empresas
+corporativo
+particulares
+personas
+clientes
+cliente
+mibanca
+mibanco
+mibcp
+miscuentas
+prestamo
+prestamos
+credito
+creditos
+tarjeta
+tarjetas
+inversiones
+ahorro
+ahorros
+sucursales
+sucursal
+oficinas
+agencia
+agencias
+
+# --- retail / e-commerce LATAM ---
+ofertas
+catalogo
+catalogo-online
+descuentos
+black
+cyber
+falabella
+fpay
+lider
+sodimac
+linio
+paris
+ripley
+mall
+
+# --- misc operational ---
+preview
+old
+new
+beta-mobile
+mobi
+mailadm
+adminpanel
+panel-admin
+lb
+proxy
+loadbalancer
+firewall
+fw

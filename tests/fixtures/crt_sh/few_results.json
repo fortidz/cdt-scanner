@@ -1,0 +1,4 @@
+[
+  {"common_name": "www.bcp.example", "name_value": "www.bcp.example"},
+  {"common_name": "api.bcp.example", "name_value": "api.bcp.example"}
+]
