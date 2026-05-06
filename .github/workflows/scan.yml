@@ -66,7 +66,7 @@ jobs:
 
       - name: '[DEV] Pull image'
         if: ${{ inputs.phase == 'dev' }}
-        run: docker pull ghcr.io/fortidz/cdt:dev
+        run: docker pull ghcr.io/fortidz/cdt-scanner:dev
 
       - name: '[DEV] Run scan'
         if: ${{ inputs.phase == 'dev' }}
@@ -87,7 +87,7 @@ jobs:
             -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
             --user 1000:1000 \
             --read-only --tmpfs /tmp \
-            ghcr.io/fortidz/cdt:dev \
+            ghcr.io/fortidz/cdt-scanner:dev \
             scan --in /app/in/accounts_in.csv \
                  --tier "${{ inputs.tier }}" \
                  --country "${{ inputs.country_filter }}" \
@@ -122,7 +122,7 @@ jobs:
           TF_VAR_run_id: ${{ github.run_id }}
           TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
           TF_VAR_ssh_pubkey: ${{ secrets.EPHEMERAL_SSH_PUBKEY }}
-          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt:latest'
+          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt-scanner:latest'
         run: |
           set -euo pipefail
           terraform init
@@ -132,31 +132,15 @@ jobs:
             echo "instance_label=$(terraform output -raw instance_label)"
           } >> "$GITHUB_OUTPUT"
 
-      - name: '[PROD] Wait for SSH ready'
+      - name: '[PROD] Wait for SSH key auth'
         if: ${{ inputs.phase == 'prod' }}
         env:
           PUBLIC_IP: ${{ steps.tf_apply.outputs.public_ip }}
-        run: |
-          set -euo pipefail
-          echo "Waiting for SSH to become available on $PUBLIC_IP..."
-          for i in {1..60}; do
-            if nc -z -w 3 "$PUBLIC_IP" 22 2>/dev/null; then
-              echo "SSH ready after $((i * 5))s"
-              # Extra wait for cloud-init / StackScript to finish docker-pull.
-              sleep 30
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::error::SSH never became ready after 5 min"
-          exit 1
-
-      - name: '[PROD] Setup SSH agent'
-        if: ${{ inputs.phase == 'prod' }}
-        env:
           SSH_PRIVATE_KEY: ${{ secrets.EPHEMERAL_SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
+
+          # Load the key into the agent up front so subsequent steps inherit it.
           mkdir -p ~/.ssh
           eval "$(ssh-agent -s)"
           {
@@ -164,6 +148,33 @@ jobs:
             echo "SSH_AGENT_PID=$SSH_AGENT_PID"
           } >> "$GITHUB_ENV"
           printf '%s\n' "$SSH_PRIVATE_KEY" | ssh-add -
+
+          # Capture host key once (fresh VM = fresh fingerprint; avoids prompts
+          # on every ssh-keyscan retry inside the loop).
+          for i in {1..30}; do
+            if ssh-keyscan -H -T 5 "$PUBLIC_IP" >> ~/.ssh/known_hosts 2>/dev/null; then
+              break
+            fi
+            sleep 5
+          done
+
+          # Poll real SSH key auth, not just port 22 — the StackScript can take
+          # 60–120 s to apt-install docker.io and lay down /home/cdt/.ssh/
+          # authorized_keys, so a port-22 banner arrives well before the user
+          # exists. ``BatchMode=yes`` makes ssh fail fast (no password prompt)
+          # when keys aren't accepted yet.
+          echo "Polling SSH key auth on cdt@$PUBLIC_IP (max 5 min)..."
+          for i in {1..60}; do
+            if ssh -o BatchMode=yes -o ConnectTimeout=5 \
+                   -o StrictHostKeyChecking=accept-new \
+                   cdt@"$PUBLIC_IP" 'true' 2>/dev/null; then
+              echo "SSH key auth succeeded after $((i * 5))s"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::SSH key auth never succeeded after 5 min"
+          exit 1
 
       - name: '[PROD] Push inputs and run scan'
         if: ${{ inputs.phase == 'prod' }}
@@ -174,16 +185,16 @@ jobs:
           BUILTWITH_API_KEY: ${{ secrets.BUILTWITH_API_KEY }}
         run: |
           set -euo pipefail
-          # Capture host key once (avoids prompts; fresh VM = fresh fingerprint).
-          ssh-keyscan -H "$PUBLIC_IP" >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Push inputs to VM.
-          scp -r ./in cdt@"$PUBLIC_IP":/app/
+          # Push inputs to VM. ``-o BatchMode=yes`` avoids password prompts if
+          # the key is somehow unloaded between steps.
+          scp -o BatchMode=yes -o ConnectTimeout=10 \
+              -r ./in cdt@"$PUBLIC_IP":/app/
 
           # Run scan via docker on the VM.
           # BRAVE_SEARCH_API_KEY is passed as `-e VAR` (no `=value`) so docker
           # reads from the SSH session env, not from `ps`/cmdline on the VM.
-          ssh cdt@"$PUBLIC_IP" \
+          ssh -o BatchMode=yes -o ConnectTimeout=10 cdt@"$PUBLIC_IP" \
             "BRAVE_SEARCH_API_KEY='$BRAVE_SEARCH_API_KEY' \
              SHODAN_API_KEY='${SHODAN_API_KEY:-}' \
              BUILTWITH_API_KEY='${BUILTWITH_API_KEY:-}' \
@@ -197,7 +208,7 @@ jobs:
                -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
                --user 1000:1000 \
                --read-only --tmpfs /tmp \
-               ghcr.io/fortidz/cdt:latest \
+               ghcr.io/fortidz/cdt-scanner:latest \
                scan --in /app/in/accounts_in.csv \
                     --tier '${{ inputs.tier }}' \
                     --country '${{ inputs.country_filter }}' \
@@ -205,7 +216,8 @@ jobs:
 
           # Pull outputs back.
           mkdir -p ./out
-          scp -r cdt@"$PUBLIC_IP":/app/out/* ./out/
+          scp -o BatchMode=yes -o ConnectTimeout=10 \
+              -r cdt@"$PUBLIC_IP":/app/out/* ./out/
 
       - name: '[PROD] Save cache'
         if: ${{ inputs.phase == 'prod' && success() }}
@@ -226,7 +238,7 @@ jobs:
           TF_VAR_run_id: ${{ github.run_id }}
           TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
           TF_VAR_ssh_pubkey: ${{ secrets.EPHEMERAL_SSH_PUBKEY }}
-          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt:latest'
+          TF_VAR_cdt_image: 'ghcr.io/fortidz/cdt-scanner:latest'
         run: terraform destroy -auto-approve
 
       # =========================================================================
