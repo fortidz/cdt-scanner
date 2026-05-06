@@ -321,3 +321,132 @@ def test_cloud_detection__effective_provider_falls_back_to_provider() -> None:
 
     cd3 = CloudDetection(provider=None, origin=None)
     assert cd3.effective_provider() is None
+
+
+# ---------- Fase 9 #1.1: expander-discovered subdomain integration ----------
+
+
+async def test_probe_subdomains__expanded_overrides_hardcoded() -> None:
+    """An expander-discovered subdomain (NOT in the hardcoded catalogue)
+    that resolves to AWS classifies as AWS — even though no hardcoded
+    probe would have caught it (the regression that motivated this PR).
+    """
+
+    resolver = _make_resolver(
+        {"openbanking.viabcp.example": ["54.239.28.85"]}
+    )
+    ip_ranges = _ip_ranges_stub({"54.239.28.85": "AWS"})
+    attributor = OriginAttributor(resolver=resolver, ip_range_lookup=ip_ranges)
+
+    result = await attributor.detect(
+        "viabcp.example",
+        primary_asn=13335,
+        primary_cnames=[],
+        expanded_subdomains=["https://openbanking.viabcp.example"],
+    )
+    assert result.provider == "AWS"
+    assert result.source == "subdomain_probe"
+    assert "openbanking.viabcp.example" in result.evidence.get("matches", "")
+
+
+async def test_probe_subdomains__dedup_hardcoded_and_expanded() -> None:
+    """A subdomain that exists in BOTH the hardcoded list AND the
+    expander output should be resolved exactly once."""
+
+    resolved_hosts: list[str] = []
+
+    async def _resolve(name: object, rrtype: str) -> object:
+        host = str(name).rstrip(".").lower()
+        resolved_hosts.append(host)
+        if rrtype != "A":
+            raise dns.resolver.NoAnswer()
+        if host == "api.acme.example":
+            return [MagicMock(address="54.239.28.85")]
+        raise dns.resolver.NXDOMAIN()
+
+    resolver = AsyncMock()
+    resolver.resolve = AsyncMock(side_effect=_resolve)
+    ip_ranges = _ip_ranges_stub({"54.239.28.85": "AWS"})
+    attributor = OriginAttributor(resolver=resolver, ip_range_lookup=ip_ranges)
+
+    result = await attributor.detect(
+        "acme.example",
+        primary_asn=13335,
+        primary_cnames=[],
+        # ``api.acme.example`` is also in the hardcoded ORIGIN_PROBE_SUBDOMAINS
+        # list — it must resolve once, not twice.
+        expanded_subdomains=[
+            "https://api.acme.example",
+            "https://otherhost.acme.example",
+        ],
+    )
+    assert result.provider == "AWS"
+    api_calls = [h for h in resolved_hosts if h == "api.acme.example"]
+    assert len(api_calls) == 1, f"expected 1 query for api, got {len(api_calls)}"
+
+
+async def test_probe_subdomains__multiple_hits_escalate_to_high() -> None:
+    """3 expander-discovered subdomains all resolving into AWS → HIGH."""
+
+    resolver = _make_resolver(
+        {
+            "openbanking.viabcp.example": ["54.239.28.85"],
+            "loginunico.viabcp.example": ["54.239.28.86"],
+            "authserver.viabcp.example": ["3.5.140.10"],
+        }
+    )
+    ip_ranges = _ip_ranges_stub(
+        {
+            "54.239.28.85": "AWS",
+            "54.239.28.86": "AWS",
+            "3.5.140.10": "AWS",
+        }
+    )
+    attributor = OriginAttributor(resolver=resolver, ip_range_lookup=ip_ranges)
+
+    result = await attributor.detect(
+        "viabcp.example",
+        primary_asn=13335,
+        primary_cnames=[],
+        expanded_subdomains=[
+            "https://openbanking.viabcp.example",
+            "https://loginunico.viabcp.example",
+            "https://authserver.viabcp.example",
+        ],
+    )
+    assert result.provider == "AWS"
+    assert result.confidence == Confidence.HIGH
+
+
+async def test_probe_subdomains__empty_expanded_list_falls_back_to_hardcoded() -> None:
+    """When ``expanded_subdomains`` is empty (or omitted), behaviour
+    matches PR #14: only the hardcoded catalogue is probed."""
+
+    # ``api.acme.example`` is in the hardcoded list; populate it.
+    resolver = _make_resolver({"api.acme.example": ["54.239.28.85"]})
+    ip_ranges = _ip_ranges_stub({"54.239.28.85": "AWS"})
+    attributor = OriginAttributor(resolver=resolver, ip_range_lookup=ip_ranges)
+
+    # Test both forms: empty list and no kwarg at all.
+    for empty in ([], None):
+        kwargs: dict = {} if empty is None else {"expanded_subdomains": empty}
+        result = await attributor.detect(
+            "acme.example",
+            primary_asn=13335,
+            primary_cnames=[],
+            **kwargs,
+        )
+        assert result.provider == "AWS", f"empty={empty!r} should still hit hardcoded"
+        assert result.source == "subdomain_probe"
+
+
+async def test_probe_subdomains__expanded_url_with_scheme_is_normalized() -> None:
+    """``https://host``, ``host``, and ``host:443`` all dedup to the same
+    FQDN. Documented in ``_normalize_host``."""
+
+    from cdt.detect.origin import _normalize_host
+
+    assert _normalize_host("https://Foo.Acme.Example") == "foo.acme.example"
+    assert _normalize_host("foo.acme.example") == "foo.acme.example"
+    assert _normalize_host("foo.acme.example:443") == "foo.acme.example"
+    assert _normalize_host("") == ""
