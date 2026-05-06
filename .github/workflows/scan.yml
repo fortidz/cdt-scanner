@@ -88,6 +88,7 @@ jobs:
             -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
             --user 1000:1000 \
             --read-only --tmpfs /tmp \
+            -w /app \
             ghcr.io/fortidz/cdt:dev \
             scan --in /app/in/accounts_in.csv \
                  --tier "${{ inputs.tier }}" \
@@ -211,6 +212,7 @@ jobs:
                -e CDT_USER_AGENT='CDT-Scanner/0.1 (+https://github.com/fortidz/cdt-scanner)' \
                --user 1000:1000 \
                --read-only --tmpfs /tmp \
+               -w /app \
                ghcr.io/fortidz/cdt:latest \
                scan --in /app/in/accounts_in.csv \
                     --tier '${{ inputs.tier }}' \
