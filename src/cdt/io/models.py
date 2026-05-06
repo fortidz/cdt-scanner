@@ -48,6 +48,7 @@ class Site(BaseModel):
     asn: int | None = None
     asn_org: str = ""
     cloud_provider: str = "-"
+    origin_cloud_provider: str = "-"  # behind-edge origin (Fase 9 #1)
     cdn: str = "-"
     waf_detected: bool = False
     waf_vendor: str = "-"

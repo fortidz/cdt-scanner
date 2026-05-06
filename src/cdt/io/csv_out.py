@@ -86,6 +86,10 @@ SITES_HEADERS: tuple[str, ...] = (
     "PermissionsPolicy",
     "ScanTier",
     "ScannedAt",
+    # Fase 9 #1: appended at the end so the existing column 1..27 order
+    # stays byte-stable for SharePoint Grid view paste; consumers that
+    # ignore unknown trailing columns continue to work unchanged.
+    "OriginCloudProvider",
 )
 
 FINDINGS_HEADERS: tuple[str, ...] = (
@@ -308,6 +312,7 @@ def _site_row(site: Site) -> dict[str, str]:
         ),
         "ScanTier": site.scan_tier,
         "ScannedAt": _iso_z(site.scanned_at),
+        "OriginCloudProvider": _dash_if_empty(site.origin_cloud_provider),
     }
 
 
