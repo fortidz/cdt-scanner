@@ -202,6 +202,7 @@ jobs:
              BUILTWITH_API_KEY='${BUILTWITH_API_KEY:-}' \
              docker run --rm \
                -v /app/in:/app/in:ro \
+               -v /app/config:/app/config:ro \
                -v /app/out:/app/out \
                -v /app/cache:/app/cache \
                -e BRAVE_SEARCH_API_KEY \
