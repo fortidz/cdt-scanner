@@ -1,0 +1,3 @@
+Title,Country,PublicCloud,Complexity,HasAWS,HasAzure,HasGCP,HasOCI,PrimaryHyperScaler,Website01,Website02,Website03,Website04,Website05,WAF,WAFVendor,WAFTool,CMSFramework,WebServer,CDN,RiskScore,RecommendsFortiAppSec,RecommendsFortiWeb,RecommendsFortiCNAPP,OpportunityRationale,ScannedAt
+Banco de Crédito BCP,Perú,Further investigation needed,-,No,No,No,No,-,https://viabcp.com,-,-,-,-,Further investigation needed,Cloudflare,Cloudflare WAF,-,-,Cloudflare,LOW (3/15),No,No,No,,2026-05-06T04:53:33Z
+Falabella Chile,Chile,Further investigation needed,-,No,No,No,No,-,https://falabella.com,-,-,-,-,Yes,Cloudflare,Cloudflare WAF,-,-,Cloudflare,LOW (2/15),No,No,No,,2026-05-06T04:53:33Z
