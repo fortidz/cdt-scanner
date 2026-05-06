@@ -330,3 +330,53 @@ def test_writer__creates_out_dir_if_missing(tmp_path: Path) -> None:
     writer = CsvOutputWriter(nested)
     writer.write_findings([])
     assert (nested / "findings.csv").exists()
+
+
+# ---------------------------------------------------------------------------
+# Fase 9 #2: tri-state RecommendsForti* rendering
+# ---------------------------------------------------------------------------
+
+
+def test_render_recommend__none_renders_as_dash() -> None:
+    """``None`` is the "insufficient data" sentinel from passive tier."""
+
+    from cdt.io.csv_out import _render_recommend
+
+    assert _render_recommend(None) == "-"
+    assert _render_recommend(True) == "Yes"
+    assert _render_recommend(False) == "No"
+
+
+def test_write_accounts_enriched__passive_tier_recommends_render_as_dash(
+    tmp_path: Path,
+) -> None:
+    """End-to-end: a ScoringResult whose opportunity flags are all ``None``
+    (the passive-tier output) writes ``RecommendsForti*`` as ``"-"`` not ``"No"``."""
+
+    result = ScoringResult(
+        risk=RiskScore(score=0, band=RiskBand.LOW, breakdown=[]),
+        opportunity=OpportunityFlags(appsec=None, web=None, cnapp=None),
+        rationale="",
+        findings=[],
+        waf_decision="No",
+        waf_vendor="-",
+        waf_tool="",
+        public_cloud="Further investigation needed",
+        complexity="-",
+        primary_hyperscaler="-",
+        has_aws=False,
+        has_azure=False,
+        has_gcp=False,
+        has_oci=False,
+    )
+    writer = CsvOutputWriter(tmp_path)
+    writer.write_accounts_enriched([result], {"k": _meta()})
+
+    body = (tmp_path / "accounts_enriched.csv").read_text(encoding="utf-8")
+    headers = body.splitlines()[0].split(",")
+    fields = body.splitlines()[1].split(",")
+    cols = dict(zip(headers, fields, strict=False))
+
+    assert cols["RecommendsFortiAppSec"] == "-"
+    assert cols["RecommendsFortiWeb"] == "-"
+    assert cols["RecommendsFortiCNAPP"] == "-"
